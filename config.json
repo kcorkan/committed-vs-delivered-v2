@@ -1,0 +1,18 @@
+{
+    "name": "Committed vs Delivered v2",
+    "sdk": "2.1",
+    "version": "0.1",
+    "className": "Rally.app.CommittedvsDeliveredv2",
+    "server": "https://rally1.rallydev.com",
+    "artifact": "",
+    "javascript": [
+        "node_modules/@agile-central-technical-services/utils-shared-views/index.js",
+        "node_modules/@agile-central-technical-services/utils-ancestor-pi-app-filter/index.js",
+        "node_modules/@agile-central-technical-services/utils-ancestor-pi-inline-filter/index.js",
+        "node_modules/@agile-central-technical-services/utils-field-picker/index.js",
+        "node_modules/file-saver/FileSaver.min.js",
+        "node_modules/@agile-central-technical-services/utils-file-utils/index.js",
+        "src/javascript/utils/*.js",
+        "src/javascript/*.js"
+    ]
+}
