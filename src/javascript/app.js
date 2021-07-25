@@ -37,7 +37,11 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             timeboxType: Constants.TIMEBOX_TYPE_ITERATION,
             timeboxCount: 5,
             planningWindow: 2,
-            currentTimebox: true
+            currentTimebox: true,
+            historicalCacheField: 'historicalCache',
+            timeboxStartDateField: 'StartDate',
+            timeboxEndDateField: 'EndDate',
+            preferenceCache: true
         }
     },
 
@@ -279,128 +283,207 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         return result;
     },
 
-    getFiltersFromButton: function() {
-        var filters = null;
-        try {
-            filters = this.filterButton.getWsapiFilter()
-        }
-        catch (ex) {
-            // Ignore if filter button not yet available
-        }
+    // getFiltersFromButton: function() {
+    //     var filters = null;
+    //     try {
+    //         filters = this.filterButton.getWsapiFilter()
+    //     }
+    //     catch (ex) {
+    //         // Ignore if filter button not yet available
+    //     }
 
-        return filters;
-    },
+    //     return filters;
+    // },
 
     // Usual monkey business to size gridboards
     onResize: function() {
         this.callParent(arguments);
         var gridArea = this.down('#grid-area');
-        var gridboard = this.down('rallygridboard');
+        var gridboard = this.down('rallychart');
         if (gridArea && gridboard) {
             gridboard.setHeight(gridArea.getHeight() - Constants.APP_RESERVED_HEIGHT)
         }
     },
+   
+    _buildChartData: function(timeboxGroups){
+        console.log('buildChartData',timeboxGroups)
+        var planningWindow = this.getSetting('planningWindow');
+        var chartData = {
+            categories: [],
+            series: [{
+                dataLabels: {
+                    enabled: true,
+                    format: '{total} ' + Constants.COMMITTED,
+                    inside: false,
+                    y: -20,
+                    overflow: 'justify'
+                },
+                name: Constants.UNPLANNED,
+                data: [],
+                legendIndex: 2,
+                stack: 'planned'
+            }, {
+                name: Constants.PLANNED,
+                data: [],
+                legendIndex: 1,
+                stack: 'planned'
+            }, {
+                dataLabels: {
+                    enabled: true,
+                    format: '{total} ' + Constants.DELIVERED,
+                    inside: false,
+                    y: -20,
+                    overflow: 'justify'
+                },
+                name: Constants.UNPLANNED,
+                data: [],
+                showInLegend: false,
+                stack: 'delivered'
+            }, {
+                name: Constants.PLANNED,
+                data: [],
+                showInLegend: false,
+                stack: 'delivered'
+            }]
+        }
 
-    _buildChartConfig: function() {
-        // Get the last N timeboxes
-        return this.getTimeboxes().then({
-            scope: this,
-            success: function(timeboxGroups) {
-                var promises = _.map(timeboxGroups, function(timeboxGroup) {
-                    var timebox = timeboxGroup[0]; // Representative timebox for the group
-                    var planningWindowEndIso = Ext.Date.add(timebox.get(this.timeboxStartDateField), Ext.Date.DAY, this.getSetting('planningWindow')).toISOString();
-                    var timeboxEndIso = timebox.get(this.timeboxEndDateField).toISOString();
-                    var timeboxStartIso = timebox.get(this.timeboxStartDateField).toISOString();
-                    var snapshotByOid = {}
-                    return this.getSnapshotsFromTimeboxGroup(timeboxGroup).then({
-                        scope: this,
-                        success: function(snapshots) {
-                            if (!snapshots || snapshots.length == 0) {
-                                return {
-                                    timebox: timebox,
-                                    artifactStore: null
-                                }
-                            }
-                            else {
-                                var oidQueries = [];
-                                _.each(snapshots, function(snapshot) {
-                                    var oid = snapshot.get('ObjectID');
-                                    oidQueries.push({
-                                        property: 'ObjectID',
-                                        value: oid
-                                    });
-                                    snapshotByOid[oid] = snapshot;
-                                }, this);
 
-                                // We can't get other data like accepted date
-                                // as part of the planned/unplanned lookback query because then we'd have
-                                // to compress potentially many snapshots on the client side.
-                                var filters = Rally.data.wsapi.Filter.or(oidQueries);
+        for (var i=0; i<timeboxGroups.length; i++){
+            if (timeboxGroups[i].length > 0){
+                var unplanned = 0,
+                    committed = 0,
+                    unplannedDelivered = 0,
+                    committedDelivered = 0;
 
-                                var advancedFilters = this.getFiltersFromButton();
-                                if (advancedFilters) {
-                                    filters = filters.and(advancedFilters);
-                                    this.advancedFiltersString = advancedFilters.toString();
-                                }
-                                else {
-                                    this.advancedFiltersString = '';
-                                }
-
-                                var artifactStore = Ext.create('Rally.data.wsapi.Store', {
-                                    model: this.modelName,
-                                    fetch: this.getFieldsFromButton(),
-                                    autoLoad: false,
-                                    enablePostGet: true,
-                                    filters: filters
-                                });
-                                return artifactStore.load().then({
-                                    scope: this,
-                                    success: function(artifacts) {
-                                        // Augment each artifact with Planned, Delivered and timebox Added Date
-                                        _.each(artifacts, function(artifact) {
-                                            var snapshot = snapshotByOid[artifact.get('ObjectID')];
-                                            var validFrom = snapshot.get('_ValidFrom')
-                                            if (validFrom <= planningWindowEndIso) {
-                                                artifact.set('Planned', true);
-                                            }
-                                            var acceptedDate = artifact.get(this.acceptedDateField);
-                                            if (acceptedDate) {
-                                                var acceptedIso = acceptedDate.toISOString();
-                                                if (acceptedIso <= timeboxEndIso) {
-                                                    artifact.set('Delivered', true);
-                                                }
-                                                // Special case where artifact may be assigned to timeboxes that occur after
-                                                // its accepted date. We may want to render these differently so they don't
-                                                // show up as 'Delivered' in multiple timeboxes.
-                                                if (acceptedIso < timeboxStartIso) {
-                                                    artifact.set('AcceptedBeforeTimeboxStart', true);
-                                                }
-                                            }
-                                            artifact.set('timeboxAddedDate', new Date(validFrom));
-                                            artifact.set('timeboxName', timebox.get('Name'));
-                                            artifact.set('timeboxStartDate', timebox.get(this.timeboxStartDateField));
-                                            artifact.set('timeboxEndDate', timebox.get(this.timeboxEndDateField))
-                                        }, this);
-                                        return {
-                                            timebox: timebox,
-                                            artifactStore: artifactStore
-                                        }
-                                    }
-                                });
-                            }
+                chartData.categories.push(timeboxGroups[i][0].get('Name'));
+                for (var j=0; j<timeboxGroups[i].length; j++){
+                    var cache = timeboxGroups[i][j].get(this.getHistorcalCacheField());
+                    //try { cache = JSON.parse(cache) || {}; } catch (ex){ cache = {}; }
+                    cache = cache || {};
+                    if (cache.countAdded && cache.countAdded.length > 0){
+                        var plannedIndexAdded = Math.min(planningWindow+1,cache.countAdded.length);
+                        committed += cache.countAdded.slice(0,plannedIndexAdded).reduce(function(a,c){return a+c; });
+                        if (cache.countAdded.length > plannedIndexAdded+1){
+                            unplanned += cache.countAdded.slice(plannedIndexAdded+1).reduce(function(a,c){return a+c; });
                         }
-                    })
-                }, this);
-                return Deft.Promise.all(promises)
+                    }
+                    if (cache.countDeliveredByAdded && cache.countDeliveredByAdded.length > 0){
+                        var plannedIndexDelivered =Math.min(planningWindow+1,cache.countDeliveredByAdded.length);
+                        committedDelivered += cache.countDeliveredByAdded.slice(0,plannedIndexDelivered).reduce(function(a,c){return a+c; });
+                        if (cache.countDeliveredByAdded.length > plannedIndexDelivered+1){
+                            unplannedDelivered += cache.countDeliveredByAdded.slice(plannedIndexDelivered+1).reduce(function(a,c){return a+c; });
+                        }
+                    }
+                } //end for timeboxGroups[i].length 
+                chartData.series[0].data[i] = unplanned;
+                chartData.series[1].data[i] = committed;
+                chartData.series[2].data[i] = unplannedDelivered;
+                chartData.series[3].data[i] = committedDelivered;
             }
-        }).then({
-            scope: this,
-            success: function(data) {
-                this.data = data;
-                return this.getChartConfig(this.data);
-            }
-        });
+        }
+
+        return chartData;
     },
+    // _buildChartConfig_orig: function() {
+    //     // Get the last N timeboxes
+    //     return this.getTimeboxes().then({
+    //         scope: this,
+    //         success: function(timeboxGroups) {
+    //             var promises = _.map(timeboxGroups, function(timeboxGroup) {
+    //                 var timebox = timeboxGroup[0]; // Representative timebox for the group
+    //                 var planningWindowEndIso = Ext.Date.add(timebox.get(this.timeboxStartDateField), Ext.Date.DAY, this.getSetting('planningWindow')).toISOString();
+    //                 var timeboxEndIso = timebox.get(this.timeboxEndDateField).toISOString();
+    //                 var timeboxStartIso = timebox.get(this.timeboxStartDateField).toISOString();
+    //                 var snapshotByOid = {}
+    //                 return this.getSnapshotsFromTimeboxGroup(timeboxGroup).then({
+    //                     scope: this,
+    //                     success: function(snapshots) {
+    //                         if (!snapshots || snapshots.length == 0) {
+    //                             return {
+    //                                 timebox: timebox,
+    //                                 artifactStore: null
+    //                             }
+    //                         }
+    //                         else {
+    //                             var oidQueries = [];
+    //                             _.each(snapshots, function(snapshot) {
+    //                                 var oid = snapshot.get('ObjectID');
+    //                                 oidQueries.push({
+    //                                     property: 'ObjectID',
+    //                                     value: oid
+    //                                 });
+    //                                 snapshotByOid[oid] = snapshot;
+    //                             }, this);
+
+    //                             // We can't get other data like accepted date
+    //                             // as part of the planned/unplanned lookback query because then we'd have
+    //                             // to compress potentially many snapshots on the client side.
+    //                             var filters = Rally.data.wsapi.Filter.or(oidQueries);
+
+    //                             var advancedFilters = this.getFiltersFromButton();
+    //                             if (advancedFilters) {
+    //                                 filters = filters.and(advancedFilters);
+    //                                 this.advancedFiltersString = advancedFilters.toString();
+    //                             }
+    //                             else {
+    //                                 this.advancedFiltersString = '';
+    //                             }
+
+    //                             var artifactStore = Ext.create('Rally.data.wsapi.Store', {
+    //                                 model: this.modelName,
+    //                                 fetch: this.getFieldsFromButton(),
+    //                                 autoLoad: false,
+    //                                 enablePostGet: true,
+    //                                 filters: filters
+    //                             });
+    //                             return artifactStore.load().then({
+    //                                 scope: this,
+    //                                 success: function(artifacts) {
+    //                                     // Augment each artifact with Planned, Delivered and timebox Added Date
+    //                                     _.each(artifacts, function(artifact) {
+    //                                         var snapshot = snapshotByOid[artifact.get('ObjectID')];
+    //                                         var validFrom = snapshot.get('_ValidFrom')
+    //                                         if (validFrom <= planningWindowEndIso) {
+    //                                             artifact.set('Planned', true);
+    //                                         }
+    //                                         var acceptedDate = artifact.get(this.acceptedDateField);
+    //                                         if (acceptedDate) {
+    //                                             var acceptedIso = acceptedDate.toISOString();
+    //                                             if (acceptedIso <= timeboxEndIso) {
+    //                                                 artifact.set('Delivered', true);
+    //                                             }
+    //                                             // Special case where artifact may be assigned to timeboxes that occur after
+    //                                             // its accepted date. We may want to render these differently so they don't
+    //                                             // show up as 'Delivered' in multiple timeboxes.
+    //                                             if (acceptedIso < timeboxStartIso) {
+    //                                                 artifact.set('AcceptedBeforeTimeboxStart', true);
+    //                                             }
+    //                                         }
+    //                                         artifact.set('timeboxAddedDate', new Date(validFrom));
+    //                                         artifact.set('timeboxName', timebox.get('Name'));
+    //                                         artifact.set('timeboxStartDate', timebox.get(this.timeboxStartDateField));
+    //                                         artifact.set('timeboxEndDate', timebox.get(this.timeboxEndDateField))
+    //                                     }, this);
+    //                                     return {
+    //                                         timebox: timebox,
+    //                                         artifactStore: artifactStore
+    //                                     }
+    //                                 }
+    //                             });
+    //                         }
+    //                     }
+    //                 })
+    //             }, this);
+    //             return Deft.Promise.all(promises)
+    //         }
+    //     }).then({
+    //         scope: this,
+    //         success: function(data) {
+    //             this.data = data;
+    //             return this.getChartConfig(this.data);
+    //         }
+    //     });
+    // },
 
     getChartConfig: function(data) {
         var sortedData = _.sortBy(data, function(datum) {
@@ -580,35 +663,44 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             pageSize: this.getSetting('timeboxCount')
         }).load().then({
             scope: this,
-            success: function(timeboxes) {
-                var timeboxFilter = _.map(timeboxes, function(timebox) {
-                    return Rally.data.wsapi.Filter.and([{
-                        property: 'Name',
-                        value: timebox.get('Name')
-                    }, {
-                        property: this.timeboxStartDateField,
-                        value: timebox.get(this.timeboxStartDateField)
-                    }, {
-                        property: this.timeboxEndDateField,
-                        value: timebox.get(this.timeboxEndDateField)
-                    }]);
-                }, this);
-                if (timeboxFilter.length) {
-                    return Rally.data.wsapi.Filter.or(timeboxFilter)
-                }
-                else {
-                    return null;
-                }
-            }
+            success: this.getTimeboxFilter
         }).then({
             scope: this,
-            success: function(timeboxFilter) {
-                if (timeboxFilter) {
+            success: this.fetchTimeboxes
+        // }).then({
+        //     scope: this,
+        //     success: this.buildHistoricalCache
+        })
+    },
+    buildHistoricalCache: function(timeboxes) {
+        // Group by timebox name
+        return Ext.create('TimeboxHistoricalCacheFactory',{
+            timeboxes: timeboxes,
+            timeboxType: this.getSetting('timeboxType'),
+            dataContext: this.getContext().getDataContext(),
+            historicalCacheField: this.getHistorcalCacheField(),
+            timeboxStartDateField: 'StartDate',
+            timeboxEndDateField: 'EndDate',
+            appId: this.getAppId(),
+            modelNames: ['HierarchicalRequirement']
+        }).build();
+        // return _.groupBy(timeboxes, function(timebox) {
+        //     return timebox.get('Name');
+        // });
+    },
+    getHistorcalCacheField: function(){
+        return this.getSetting('historicalCacheField');
+    },
+    fetchTimeboxes: function(timeboxFilter) {
+        if (timeboxFilter) {
+            return TimeboxCacheModelBuilder.build(this.timeboxType,this.timeboxType + "Extended",this.getHistorcalCacheField()).then({
+                scope: this,
+                success: function(model){
                     return Ext.create('Rally.data.wsapi.Store', {
-                        model: this.timeboxType,
+                        model: model,
                         autoLoad: false,
-                        fetch: ['ObjectID', this.timeboxStartDateField, this.timeboxEndDateField, 'Name'],
-                        enablePostGet: true,
+                        fetch: ['ObjectID', this.timeboxStartDateField, this.timeboxEndDateField, 'Name',this.getHistorcalCacheField(),'Project'],
+                        //enablePostGet: true,
                         sorters: [{
                             property: this.timeboxEndDateField,
                             direction: 'DESC'
@@ -616,21 +708,36 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                         filters: [timeboxFilter]
                     }).load()
                 }
-                else {
-                    return [];
-                }
-            }
-        }).then({
-            scope: this,
-            success: function(timeboxes) {
-                // Group by timebox name
-                return _.groupBy(timeboxes, function(timebox) {
-                    return timebox.get('Name');
-                });
-            }
-        })
+            });
+        }
+        else {
+            return [];
+        }
     },
-
+    getTimeboxFilter: function(timeboxes,operation){
+        var timeboxFilter = _.map(timeboxes, function(timebox) {
+            return Rally.data.wsapi.Filter.and([{
+                property: 'Name',
+                value: timebox.get('Name')
+            }, {
+                property: this.timeboxStartDateField,
+                value: timebox.get(this.timeboxStartDateField)
+            }, {
+                property: this.timeboxEndDateField,
+                value: timebox.get(this.timeboxEndDateField)
+            // },{
+            //     property: 'WorkProducts.ObjectID',
+            //     operator: ">",
+            //     value: 0
+            }]);
+        }, this);
+        if (timeboxFilter.length) {
+            return Rally.data.wsapi.Filter.or(timeboxFilter)
+        }
+        else {
+            return null;
+        }
+    },
     getSnapshotsFromTimeboxGroup: function(timeboxGroup) {
         var timebox = timeboxGroup[0]; // Representative timebox for the group
         var timeboxOids = _.map(timeboxGroup, function(timebox) {
@@ -679,31 +786,37 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         });
         return store.load();
     },
+    _addChart: function(chartConfig){
+        console.log('_addChart',chartConfig);
+        var chartArea = this.down('#grid-area')
+        chartArea.removeAll();
 
-    _addGridboard: function(chartConfig) {
-        var gridArea = this.down('#grid-area')
-        gridArea.removeAll();
-
-        var filters = [];
-        var timeboxScope = this.getContext().getTimeboxScope();
-        if (timeboxScope && timeboxScope.isApplicable(this.modelName)) {
-            filters.push(timeboxScope.getQueryFilter());
-        }
-
-        var context = this.getContext();
-        this.gridboard = gridArea.add({
-            xtype: 'rallygridboard',
-            context: context,
-            modelNames: [this.modelName],
-            toggleState: 'chart',
-            height: gridArea.getHeight() - Constants.APP_RESERVED_HEIGHT,
-            chartConfig: chartConfig,
-            listeners: {
-                scope: this,
-                viewchange: this.viewChange,
-            }
-        });
+        chartArea.add(chartConfig);
     },
+    // _addGridboard: function(chartConfig) {
+    //     var gridArea = this.down('#grid-area')
+    //     gridArea.removeAll();
+
+    //     var filters = [];
+    //     var timeboxScope = this.getContext().getTimeboxScope();
+    //     if (timeboxScope && timeboxScope.isApplicable(this.modelName)) {
+    //         filters.push(timeboxScope.getQueryFilter());
+    //     }
+
+    //     var context = this.getContext();
+    //     this.gridboard = gridArea.add({
+    //         xtype: 'rallygridboard',
+    //         context: context,
+    //         modelNames: [this.modelName],
+    //         toggleState: 'chart',
+    //         height: gridArea.getHeight() - Constants.APP_RESERVED_HEIGHT,
+    //         chartConfig: chartConfig,
+    //         listeners: {
+    //             scope: this,
+    //             viewchange: this.viewChange,
+    //         }
+    //     });
+    // },
 
     isPiTypeSelected: function() {
         return this.modelName == this.lowestPiType.get('TypePath');
@@ -851,21 +964,104 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             }
         ]
     },
-
     viewChange: function() {
         this.setLoading(true);
         // Add the other filter, config and export controls
         this.addControls().then({
             scope: this,
-            success: this._buildChartConfig
+            success: this.getTimeboxes
         }).then({
             scope: this,
-            success: function(chartConfig) {
-                this._addGridboard(chartConfig);
+            success: this.buildHistoricalCache
+        }).then({
+            scope: this,
+            success: function(timeboxGroups) {
+                this.timeboxGroups = timeboxGroups;
+                this._rebuildChart(timeboxGroups);
                 this.setLoading(false);
             }
         });
     },
+
+    _rebuildChart: function(timeboxGroups){
+        var chartData = this._buildChartData(timeboxGroups);
+        var chartConfig = this._buildChartConfig(chartData);
+        this._addChart(chartConfig);
+    },
+    _buildChartConfig: function(chartData){
+        return {
+            xtype: 'rallychart',
+            loadMask: false,
+            chartColors: [
+                "#FAD200", // $yellow
+                "#8DC63F", // $lime
+            ],
+            chartConfig: {
+                chart: {
+                    type: 'column',
+                    animation: false
+                },
+                title: {
+                    text: Constants.CHART_TITLE + ' by ' + this.timeboxType
+                },
+                legend: {
+                    layout: 'vertical',
+                    labelFormatter: function() {
+                        var result = this.name;
+                        if (this.name == Constants.UNPLANNED) {
+                            var app = Rally.getApp();
+                            var timeboxType = app.getSetting('timeboxType');
+                            var days = app.getSetting('planningWindow');
+                            result = this.name + ' (' + Constants.UNPLANNED_DESCRIPTION.replace('{timebox}', timeboxType).replace('{days}', days) + ')'
+                        }
+                        return result;
+                    }
+                },
+                plotOptions: {
+                    column: {
+                        stacking: 'normal'
+                    },
+                    series: {
+                        animation: false,
+                        dataLabels: {
+                            align: 'center',
+                            verticalAlign: 'top',
+                        },
+                        events: {
+                            legendItemClick: function() { return false; } // Disable hiding some of data on legend click
+                        }
+                    }
+                },
+                yAxis: {
+                    allowDecimals: false,
+                    title: {
+                        text: Constants.Y_AXIS_TITLE
+                    }
+                }
+            },
+            chartData: chartData 
+        }
+    },
+    // viewChange_orig: function() {
+    //     this.setLoading(true);
+    //     // Add the other filter, config and export controls
+    //     this.addControls().then({
+    //         scope: this,
+    //         success: this.getTimeboxes
+    //     }).then({
+    //         scope: this,
+    //         success: this.buildHistoricalCache
+    //     }).then({
+    //         scope: this,
+    //         success: function(timeboxGroups) {
+    //             this.timeboxGroups = timeboxGroups;
+    //             this._rebuildChart(timeboxGroups);
+    //             this._addChart(chartConfig);
+    //             //this._addGridboard(chartConfig);
+    //             this.setLoading(false);
+    //         }
+    //     });
+    // },
 
     onSettingsClose: function() {
         // Don't redraw the app unless something has changed
