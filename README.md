@@ -4,6 +4,33 @@
 
 ![screenshot](./images/screenshot.png "This is an example")
 
+## Scenarios - Difference between the original committed v delivered
+
+Artifact Moving 
+If a story is committed to a sprint and the story is accepted within the same sprint before the end date, it will be considered "Delivered" for that sprint.  
+
+If that same story is moved out of the sprint into another sprint it will be marked as committed to that sprint when it is moved into the sprint.  If it is in the Accepted State  on the last day of the sprint, then it will also count as delivered for that sprint.  
+
+The original committed v delivered only looks at the current sprint and state of the item that the item is in for stories that were accepted.  
+
+Scenario:  Customer has a "CV Defect" bucket story that they add defects to within a sprint.  That may be accepted by the end of the sprint, but then it is moved into new sprint and more defects are added to it, changing it's accepted state.  
+
+Committed v. Delivered looks at anything in the sprint at the planning window.
+If an item has been deleted, then it will not show up in the old one (but will in this one) - S205828
+If the item was accepted and deleted before the sprint ends, it will not be shown as delivered.  If it was accepted and deleted after the sprint end, it will be shown as delivered.
+
+If something is added to the sprint and removed before the planning window, it will show as committed.  
+
+## Todo
+- Add by estimate 
+- add filter at lower level 
+- add clear cache  
+- test release for portfolio items 
+- update loading masks 
+- get rid of filter in upper left
+- add slider for planning window
+
+
 ## Development Notes
 
 

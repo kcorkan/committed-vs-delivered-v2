@@ -347,8 +347,8 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             }]
         }
 
-
-        for (var i=0; i<timeboxGroups.length; i++){
+        var numTimeboxGroups = timeboxGroups.length;
+        for (var i=numTimeboxGroups-1; i>=0; i--){
             if (timeboxGroups[i].length > 0){
                 var unplanned = 0,
                     committed = 0,
@@ -364,21 +364,21 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                         var plannedIndexAdded = Math.min(planningWindow+1,cache.countAdded.length);
                         committed += cache.countAdded.slice(0,plannedIndexAdded).reduce(function(a,c){return a+c; });
                         if (cache.countAdded.length > plannedIndexAdded+1){
-                            unplanned += cache.countAdded.slice(plannedIndexAdded+1).reduce(function(a,c){return a+c; });
+                            unplanned += cache.countAdded.slice(plannedIndexAdded).reduce(function(a,c){return a+c; });
                         }
                     }
                     if (cache.countDeliveredByAdded && cache.countDeliveredByAdded.length > 0){
                         var plannedIndexDelivered =Math.min(planningWindow+1,cache.countDeliveredByAdded.length);
                         committedDelivered += cache.countDeliveredByAdded.slice(0,plannedIndexDelivered).reduce(function(a,c){return a+c; });
-                        if (cache.countDeliveredByAdded.length > plannedIndexDelivered+1){
+                        if (cache.countDeliveredByAdded.length > plannedIndexDelivered){
                             unplannedDelivered += cache.countDeliveredByAdded.slice(plannedIndexDelivered+1).reduce(function(a,c){return a+c; });
                         }
                     }
                 } //end for timeboxGroups[i].length 
-                chartData.series[0].data[i] = unplanned;
-                chartData.series[1].data[i] = committed;
-                chartData.series[2].data[i] = unplannedDelivered;
-                chartData.series[3].data[i] = committedDelivered;
+                chartData.series[0].data.push(unplanned);
+                chartData.series[1].data.push(committed);
+                chartData.series[2].data.push(unplannedDelivered);
+                chartData.series[3].data.push(committedDelivered);
             }
         }
 
