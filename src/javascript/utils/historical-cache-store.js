@@ -151,8 +151,9 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                     cacheName = this.getNamePrefix() + timeboxOid;
                 }    
                 if (cacheByTimeboxOid[timeboxOid]){
+                    console.log('setting timebox cache')
                     timeboxGroup[i].set(historicalCacheField,cacheByTimeboxOid[timeboxOid]);
-                    
+                    newCache[cacheName] = JSON.stringify(cacheByTimeboxOid[timeboxOid]);
                     //TODO actually persist this to the timebox record
                 } else {
                     console.log('processSnapshots ',timeboxGroup[i].get(historicalCacheField))
@@ -200,6 +201,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                 // console.log('Delivered: ',cache.countDeliveredByAdded);
                 // console.log('=======');
             }, this);
+            console.log('buildAddedDeliered Data', cache);
             return cache;
         },
         initializeCache: function(startDate,endDate){
