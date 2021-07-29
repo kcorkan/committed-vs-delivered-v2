@@ -359,21 +359,26 @@ Ext.define('TimeboxHistoricalCacheFactory', {
             }).load();
         },
         saveHistoricalCacheToTimebox: function(newCache, timeboxGroup){
+            var timeboxRecords = [];
             for (var i=0; i<timeboxGroup.length ; i++){
                 var timebox = timeboxGroup[i];
                 if (newCache[timebox.get('ObjectID')]){
                     timebox.set(this.historicalCacheField,newCache[timebox.get('ObjectID')]);
-                    timebox.save({
-                        callback: function(record, operation){
-                            if (!operation.wasSuccessful()){
-                                console.log("Timebox: " + record.get('Name'));
-                                console.log(Ext.String.format('timebox save failed: {0}',operation.error.errors.join(",")));
-                            } else {
-                                console.log('Timebox Saved: ' + record.get('Name'));
-                            }
-                        }
-                    });
+                    timeboxRecords.push(timebox);
                 }
+            }
+            if (timeboxRecords.length > 0){
+                var store = Ext.create('Rally.data.wsapi.batch.Store', {
+                    data: timeboxRecords
+                });
+                store.sync({
+                    success: function() {
+                        console.log('timeboxRecords saved',timeboxRecords.length);
+                    },
+                    failure: function(){
+                        console.log('timeboxRecords save FAILED',timeboxRecords.length);
+                    }
+                });
             }
         },
         saveHistoricalCache: function(newCache){

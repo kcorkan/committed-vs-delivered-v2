@@ -714,6 +714,8 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                     return Ext.create('Rally.data.wsapi.Store', {
                         model: this.timeboxType,
                         autoLoad: false,
+                        pageSize: 2000,
+                        limit: Infinity,
                         fetch: ['ObjectID', this.timeboxStartDateField, this.timeboxEndDateField, 'Name',this.getHistorcalCacheField(),'Project'],
                         //enablePostGet: true,
                         sorters: [{
