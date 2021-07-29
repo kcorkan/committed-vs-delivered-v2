@@ -252,7 +252,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                     oids.push(tbOid);
                 } else {
                     try {
-                       // cache = JSON.stringify(cache);
+                       cache = JSON.parse(cache);
                        console.log('getTimeboxOidsWithInvalidCache cache',cache)
                         if ((cache.startDate != startDate) || 
                         (cache.endDate != endDate)){

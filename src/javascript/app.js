@@ -58,7 +58,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     },
 
     launch: function() {
-
+        console.log('settings',this.getSettings());
         if (this.getSaveCacheToTimebox() && !this.getHistorcalCacheField()){
             this._showError("Please configure a historical cache field.");
         } else {
@@ -365,8 +365,10 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
 
                 chartData.categories.push(timeboxGroups[i][0].get('Name'));
                 for (var j=0; j<timeboxGroups[i].length; j++){
-                    var cache = timeboxGroups[i][j].get(this.getHistorcalCacheField());
-                    //try { cache = JSON.parse(cache) || {}; } catch (ex){ cache = {}; }
+                    var cache = timeboxGroups[i][j].get(this.getHistorcalCacheField()) || {};
+                    if (!_.isObject(cache)){
+                        try { cache = JSON.parse(cache) || {}; } catch (ex){ cache = {}; }
+                    }
                     cache = cache || {};
                     if (cache.countAdded && cache.countAdded.length > 0){
                         var plannedIndexAdded = Math.min(planningWindow+1,cache.countAdded.length);
@@ -705,11 +707,11 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     },
     fetchTimeboxes: function(timeboxFilter) {
         if (timeboxFilter) {
-            return TimeboxCacheModelBuilder.build(this.timeboxType,this.timeboxType + "Extended",this.getHistorcalCacheField()).then({
-                scope: this,
-                success: function(model){
+            // return TimeboxCacheModelBuilder.build(this.timeboxType,this.timeboxType + "Extended",this.getHistorcalCacheField()).then({
+            //     scope: this,
+            //     success: function(model){
                     return Ext.create('Rally.data.wsapi.Store', {
-                        model: model,
+                        model: this.timeboxType,
                         autoLoad: false,
                         fetch: ['ObjectID', this.timeboxStartDateField, this.timeboxEndDateField, 'Name',this.getHistorcalCacheField(),'Project'],
                         //enablePostGet: true,
@@ -718,9 +720,9 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                             direction: 'DESC'
                         }],
                         filters: [timeboxFilter]
-                    }).load()
-                }
-            });
+                    }).load();
+            //     }
+            // });
         }
         else {
             return [];
@@ -1179,6 +1181,8 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                 fieldLabel: 'Historical Cache Field',
                 model: 'Iteration',
                 labelWidth: 150,
+                displayField: 'DisplayName',
+                valueField: 'Name',
                 _isNotHidden: function(field) {
                     if (field.hidden){
                         if (field && field.attributeDefinition && field.attributeDefinition.AttributeType.toLowerCase() === "text"){
