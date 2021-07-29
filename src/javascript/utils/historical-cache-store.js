@@ -330,7 +330,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                 hydrate: [],
                 remoteSort: false,
                 compress: true,
-                enablePostGet: true, // TODO (tj) verify POST is used
+                useHttpPost: true, // TODO (tj) verify POST is used
                 filters: filters,
             });
             return store.load();
