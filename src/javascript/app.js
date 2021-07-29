@@ -356,6 +356,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         }
 
         var numTimeboxGroups = timeboxGroups.length;
+        console.log("buildChartData ",  numTimeboxGroups);
         for (var i=numTimeboxGroups-1; i>=0; i--){
             if (timeboxGroups[i].length > 0){
                 var unplanned = 0,
