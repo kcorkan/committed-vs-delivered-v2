@@ -3,14 +3,13 @@ Ext.define('TimeboxHistoricalCacheFactory', {
     timeboxes: [],
     dataContext: null,
     timeboxType: null,
-    historicalCacheField: null,
     modelNames: [],
     planningWindow: 0,
     timeboxEndDateField: null,
     timeboxStartDateField: null,
-    buildPreferenceCache: true,
-    namePrefix: "historicalCache", 
-
+    namePrefix: "historicalCache", //for preference cache only
+    saveCacheToTimebox: true,
+    historicalCacheField: null, 
     
     constructor: function (config) {
         _.merge(this,config);
@@ -18,24 +17,33 @@ Ext.define('TimeboxHistoricalCacheFactory', {
 
     build: function(){
             //for each group, fetch the snapshots if needed
-            return this.fetchSavedCache().then({
-                scope: this,
-                success: this.buildAllTimeboxCache,
-                failure: this.throwError
-            });
+            if (!this.saveCacheToTimebox){
+                return this.fetchSavedCache().then({
+                    scope: this,
+                    success: this.buildAllTimeboxCache,
+                    failure: this.throwError
+                });
+            } else {
+                return this.buildAllTimeboxCache([])
+            }
+            
         },
         buildAllTimeboxCache: function(savedCacheRecords){
             console.log('buildAllTimeboxCache: ' + Date.now());
             console.log('savedCacheRecords', savedCacheRecords);
-            this.savedCacheRecordsByName = _.reduce(savedCacheRecords, function(obj,cr){
-                obj[cr.get('Name')] = cr;
-                return obj;
-            },{});
-
+            if (!this.saveCacheToTimebox){
+                this.savedCacheRecordsByName = _.reduce(savedCacheRecords, function(obj,cr){
+                    obj[cr.get('Name')] = cr;
+                    return obj;
+                },{});    
+            }
+            
             var timeboxGroups = this.groupTimeboxes(this.timeboxes);
             
             var promises = _.map(timeboxGroups, function(timeboxGroup){
-                this.updateTimeboxesWithPreferences(timeboxGroup);
+                if (!this.saveCacheToTimebox){
+                    this.updateTimeboxesWithPreferences(timeboxGroup);
+                }
                 console.log('timeboxGroup 1',timeboxGroup)
                 return this.buildTimeboxCache(timeboxGroup);
             },this);
@@ -138,8 +146,10 @@ Ext.define('TimeboxHistoricalCacheFactory', {
             var newCache = {};
             for (var i=0; i<timeboxGroup.length; i++){
                 var timeboxOid = timeboxGroup[i].get('ObjectID');
-                var cacheName = this.getNamePrefix() + timeboxOid;
-                    
+                var cacheName = timeboxOid;
+                if (!this.saveCacheToTimebox){
+                    cacheName = this.getNamePrefix() + timeboxOid;
+                }    
                 if (cacheByTimeboxOid[timeboxOid]){
                     timeboxGroup[i].set(historicalCacheField,cacheByTimeboxOid[timeboxOid]);
                     
@@ -157,9 +167,13 @@ Ext.define('TimeboxHistoricalCacheFactory', {
             }
             console.log('newCache', newCache)
             if (!_.isEmpty(newCache)){
-                this.saveHistoricalCache(newCache);
+                console.log('this.saveCacheToTimebox',this.saveCacheToTimebox);
+                if (this.saveCacheToTimebox){
+                    this.saveHistoricalCacheToTimebox(newCache,timeboxGroup);
+                } else {
+                    this.saveHistoricalCache(newCache);
+                }
             }
-            
            return cacheByTimeboxOid; 
         },
         buildAddedDeliveredData: function(snapArraysByOid,startDate,endDate){
@@ -239,6 +253,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                 } else {
                     try {
                        // cache = JSON.stringify(cache);
+                       console.log('getTimeboxOidsWithInvalidCache cache',cache)
                         if ((cache.startDate != startDate) || 
                         (cache.endDate != endDate)){
                             //console.log('getTimeboxOidsWithInvalidCache times dont match' + cache.startDate + ' ' +startDate );
@@ -340,6 +355,24 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                 pageSize: 2000,
                 limit: Infinity 
             }).load();
+        },
+        saveHistoricalCacheToTimebox: function(newCache, timeboxGroup){
+            for (var i=0; i<timeboxGroup.length ; i++){
+                var timebox = timeboxGroup[i];
+                if (newCache[timebox.get('ObjectID')]){
+                    timebox.set(this.historicalCacheField,newCache[timebox.get('ObjectID')]);
+                    timebox.save({
+                        callback: function(record, operation){
+                            if (!operation.wasSuccessful()){
+                                console.log("Timebox: " + record.get('Name'));
+                                console.log(Ext.String.format('timebox save failed: {0}',operation.error.errors.join(",")));
+                            } else {
+                                console.log('Timebox Saved: ' + record.get('Name'));
+                            }
+                        }
+                    });
+                }
+            }
         },
         saveHistoricalCache: function(newCache){
             //Save to preferences or save to objects

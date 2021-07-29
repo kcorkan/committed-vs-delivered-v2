@@ -22,6 +22,7 @@ If the item was accepted and deleted before the sprint ends, it will not be show
 If something is added to the sprint and removed before the planning window, it will show as committed.  
 
 ## Todo
+- incorporate engineering optimization changes
 - Add by estimate 
 - add filter at lower level 
 - add clear cache  
@@ -29,6 +30,8 @@ If something is added to the sprint and removed before the planning window, it w
 - update loading masks 
 - get rid of filter in upper left
 - add slider for planning window
+- add cache version for checking
+- update settings so that the histocial field follows the selected timebox
 
 
 ## Development Notes

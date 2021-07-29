@@ -38,10 +38,10 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             timeboxCount: 5,
             planningWindow: 2,
             currentTimebox: true,
-            historicalCacheField: 'historicalCache',
+            historicalCacheField: null,
             timeboxStartDateField: 'StartDate',
             timeboxEndDateField: 'EndDate',
-            preferenceCache: true
+            saveCacheToTimebox: true 
         }
     },
 
@@ -58,26 +58,31 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     },
 
     launch: function() {
-        Deft.Promise.all([
-            Rally.data.util.PortfolioItemHelper.getPortfolioItemTypes(),
-            this.isProjectHighLevel()
-        ]).then({
-            scope: this,
-            success: function(results) {
-                var portfolioItemTypes = results[0];
-                this.projectIsHighLevel = results[1]; //Setting to determine if we show filters or not
-                this.portfolioItemTypes = _.sortBy(portfolioItemTypes, function(type) {
-                    return type.get('Ordinal');
-                });
-                this.lowestPiType = this.portfolioItemTypes[0];
-                this.setModelFieldsForType(this.getSetting('artifactType'));
-                this.setTimeboxFieldsForType(this.getSetting('timeboxType'));
-                this.viewChange();
-            },
-            failure: function(msg) {
-                this._showError(msg);
-            },
-        })
+
+        if (this.getSaveCacheToTimebox() && !this.getHistorcalCacheField()){
+            this._showError("Please configure a historical cache field.");
+        } else {
+            Deft.Promise.all([
+                Rally.data.util.PortfolioItemHelper.getPortfolioItemTypes(),
+                this.isProjectHighLevel()
+            ]).then({
+                scope: this,
+                success: function(results) {
+                    var portfolioItemTypes = results[0];
+                    this.projectIsHighLevel = results[1]; //Setting to determine if we show filters or not
+                    this.portfolioItemTypes = _.sortBy(portfolioItemTypes, function(type) {
+                        return type.get('Ordinal');
+                    });
+                    this.lowestPiType = this.portfolioItemTypes[0];
+                    this.setModelFieldsForType(this.getSetting('artifactType'));
+                    this.setTimeboxFieldsForType(this.getSetting('timeboxType'));
+                    this.viewChange();
+                },
+                failure: function(msg) {
+                    this._showError(msg);
+                },
+            });
+        }
     },
     isProjectHighLevel: function(){
         var deferred = Ext.create('Deft.Deferred');
@@ -101,6 +106,9 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             }
         });
         return deferred.promise;
+    },
+    _showError: function(msg){
+        console.log('error: ' + msg);
     },
     setModelFieldsForType: function(artifactType) {
         this.modelName = artifactType;
@@ -681,12 +689,16 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             historicalCacheField: this.getHistorcalCacheField(),
             timeboxStartDateField: 'StartDate',
             timeboxEndDateField: 'EndDate',
+            saveCacheToTimebox: this.getSaveCacheToTimebox(),
             appId: this.getAppId(),
             modelNames: ['HierarchicalRequirement']
         }).build();
         // return _.groupBy(timeboxes, function(timebox) {
         //     return timebox.get('Name');
         // });
+    },
+    getSaveCacheToTimebox: function(){
+        return this.getSetting('saveCacheToTimebox') === true || this.getSetting('saveCacheToTimebox') === "true";
     },
     getHistorcalCacheField: function(){
         return this.getSetting('historicalCacheField');
@@ -821,149 +833,6 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     isPiTypeSelected: function() {
         return this.modelName == this.lowestPiType.get('TypePath');
     },
-
-    getConfigItems: function() {
-        var timeboxTypeStore = Ext.create('Ext.data.Store', {
-            fields: ['name', 'value'],
-            data: [
-                { name: Constants.TIMEBOX_TYPE_ITERATION_LABEL, value: Constants.TIMEBOX_TYPE_ITERATION },
-                { name: Constants.TIMEBOX_TYPE_RELEASE_LABEL, value: Constants.TIMEBOX_TYPE_RELEASE },
-            ]
-        });
-        var typeStoreData = [
-            { name: 'User Story', value: 'HierarchicalRequirement' },
-        ];
-        // Called from getSettingsFields which is invoked before launch sets up the lowestPiType. Handle
-        // this case.
-        if (this.lowestPiType) {
-            typeStoreData.push({ name: this.lowestPiType.get('Name'), value: this.lowestPiType.get('TypePath') })
-        }
-        var artifactTypeStore = Ext.create('Ext.data.Store', {
-            fields: ['name', 'value'],
-            data: typeStoreData
-        });
-        return [{
-                xtype: 'combobox',
-                name: 'artifactType',
-                value: this.getSetting('artifactType'),
-                fieldLabel: 'Artifact type',
-                labelWidth: 150,
-                store: artifactTypeStore,
-                queryMode: 'local',
-                displayField: 'name',
-                valueField: 'value',
-                listeners: {
-                    scope: this,
-                    change: function(field, newValue, oldValue) {
-                        if (newValue != oldValue) {
-                            this.updateSettingsValues({
-                                settings: {
-                                    artifactType: newValue
-                                }
-                            });
-                            // Choice of artifact has changed
-                            this.setModelFieldsForType(newValue);
-                            // If Feature, also update timebox type to 'Release'
-                            var timeboxTypeControl = Ext.ComponentManager.get('timeboxType');
-                            if (this.isPiTypeSelected()) {
-                                timeboxTypeControl.setValue(Constants.TIMEBOX_TYPE_RELEASE);
-                                timeboxTypeControl.disable(); // User cannot pick other timeboxes for Features
-                            }
-                            else {
-                                timeboxTypeControl.enable();
-                            }
-                        }
-                    }
-                }
-            },
-            {
-                xtype: 'combobox',
-                name: 'timeboxType',
-                id: 'timeboxType',
-                value: this.getSetting('timeboxType'),
-                fieldLabel: 'Timebox type',
-                labelWidth: 150,
-                store: timeboxTypeStore,
-                queryMode: 'local',
-                displayField: 'name',
-                valueField: 'value',
-                disabled: this.isPiTypeSelected(),
-                listeners: {
-                    scope: this,
-                    change: function(field, newValue, oldValue) {
-                        if (newValue != oldValue) {
-                            this.updateSettingsValues({
-                                settings: {
-                                    timeboxType: newValue
-                                }
-                            });
-                            // Choice of timebox has changed
-                            this.setTimeboxFieldsForType(newValue);
-                        }
-                    }
-                }
-            },
-            {
-                xtype: 'rallynumberfield',
-                name: 'timeboxCount',
-                value: this.getSetting('timeboxCount'),
-                fieldLabel: "Timebox Count",
-                labelWidth: 150,
-                minValue: 1,
-                allowDecimals: false,
-                listeners: {
-                    scope: this,
-                    change: function(field, newValue, oldValue) {
-                        if (newValue != oldValue) {
-                            this.updateSettingsValues({
-                                settings: {
-                                    timeboxCount: newValue
-                                }
-                            });
-                        }
-                    }
-                }
-            }, {
-                xtype: 'rallynumberfield',
-                name: 'planningWindow',
-                value: this.getSetting('planningWindow'),
-                fieldLabel: 'Timebox planning window (days)',
-                labelWidth: 150,
-                minValue: 0,
-                allowDecimals: false,
-                listeners: {
-                    scope: this,
-                    change: function(field, newValue, oldValue) {
-                        if (newValue != oldValue) {
-                            this.updateSettingsValues({
-                                settings: {
-                                    planningWindow: newValue
-                                }
-                            });
-                        }
-                    }
-                }
-            }, {
-                xtype: 'rallycheckboxfield',
-                name: 'currentTimebox',
-                value: this.getSetting('currentTimebox'),
-                fieldLabel: 'Show current, in-progress timebox',
-                labelWidth: 150,
-                listeners: {
-                    scope: this,
-                    change: function(field, newValue, oldValue) {
-                        if (newValue != oldValue) {
-                            this.updateSettingsValues({
-                                settings: {
-                                    currentTimebox: newValue
-                                }
-                            });
-                        }
-                    }
-                }
-            }
-        ]
-    },
     viewChange: function() {
         this.setLoading(true);
         // Add the other filter, config and export controls
@@ -1080,7 +949,399 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         return this.getContext().getScopedStateId(modelName + '-' + id);
     },
 
-    getSettingsFields: function() {
-        return this.getConfigItems();
+    // getSettingsFields: function() {
+    //     console.log('getConfigItems');
+    //     var settings = this.getSettings();
+    //     var timeboxTypeStore = Ext.create('Ext.data.Store', {
+    //         fields: ['name', 'value'],
+    //         data: [
+    //             { name: Constants.TIMEBOX_TYPE_ITERATION_LABEL, value: Constants.TIMEBOX_TYPE_ITERATION },
+    //             { name: Constants.TIMEBOX_TYPE_RELEASE_LABEL, value: Constants.TIMEBOX_TYPE_RELEASE },
+    //         ]
+    //     });
+    //     var typeStoreData = [
+    //         { name: 'User Story', value: 'HierarchicalRequirement' },
+    //     ];
+    //     // Called from getSettingsFields which is invoked before launch sets up the lowestPiType. Handle
+    //     // this case.
+    //     if (this.lowestPiType) {
+    //         typeStoreData.push({ name: this.lowestPiType.get('Name'), value: this.lowestPiType.get('TypePath') })
+    //     }
+    //     var artifactTypeStore = Ext.create('Ext.data.Store', {
+    //         fields: ['name', 'value'],
+    //         data: typeStoreData
+    //     });
+    //     var timeboxType = settings.timeboxType;
+    //     return [{
+    //             xtype: 'combobox',
+    //             name: 'artifactType',
+    //             //value: settings.artifactType,
+    //             fieldLabel: 'Artifact type',
+    //             labelWidth: 150,
+    //             store: artifactTypeStore,
+    //             queryMode: 'local',
+    //             displayField: 'name',
+    //             valueField: 'value',
+    //             listeners: {
+    //                 scope: this,
+    //                 change: function(field, newValue, oldValue) {
+    //                     if (newValue != oldValue) {
+    //                         // this.updateSettingsValues({
+    //                         //     settings: {
+    //                         //         artifactType: newValue
+    //                         //     }
+    //                         // });
+    //                         // // Choice of artifact has changed
+    //                         // this.setModelFieldsForType(newValue);
+    //                         // If Feature, also update timebox type to 'Release'
+    //                         var timeboxTypeControl = Ext.ComponentManager.get('timeboxType');
+    //                         if (this.isPiTypeSelected()) {
+    //                             timeboxTypeControl.setValue(Constants.TIMEBOX_TYPE_RELEASE);
+    //                             timeboxTypeControl.disable(); // User cannot pick other timeboxes for Features
+    //                         }
+    //                         else {
+    //                             timeboxTypeControl.enable();
+    //                         }
+    //                     }
+    //                 }
+    //             }
+    //         },
+    //         {
+    //             xtype: 'combobox',
+    //             name: 'timeboxType',
+    //             id: 'timeboxType',
+    //             value: this.getSetting('timeboxType'),
+    //             fieldLabel: 'Timebox type',
+    //             labelWidth: 150,
+    //             store: timeboxTypeStore,
+    //             queryMode: 'local',
+    //             displayField: 'name',
+    //             valueField: 'value',
+    //             disabled: this.isPiTypeSelected(),
+    //             // listeners: {
+    //             //     scope: this,
+    //             //     change: function(field, newValue, oldValue) {
+    //             //         if (newValue != oldValue) {
+    //             //             this.updateSettingsValues({
+    //             //                 settings: {
+    //             //                     timeboxType: newValue
+    //             //                 }
+    //             //             });
+    //             //             // Choice of timebox has changed
+    //             //             this.setTimeboxFieldsForType(newValue);
+    //             //         }
+    //             //     }
+    //             // }
+    //         },
+    //         {
+    //             xtype: 'rallynumberfield',
+    //             name: 'timeboxCount',
+    //             value: this.getSetting('timeboxCount'),
+    //             fieldLabel: "Timebox Count",
+    //             labelWidth: 150,
+    //             minValue: 1,
+    //             allowDecimals: false,
+    //             // listeners: {
+    //             //     scope: this,
+    //             //     change: function(field, newValue, oldValue) {
+    //             //         if (newValue != oldValue) {
+    //             //             this.updateSettingsValues({
+    //             //                 settings: {
+    //             //                     timeboxCount: newValue
+    //             //                 }
+    //             //             });
+    //             //         }
+    //             //     }
+    //             // }
+    //         }, {
+    //             xtype: 'rallynumberfield',
+    //             name: 'planningWindow',
+    //             value: this.getSetting('planningWindow'),
+    //             fieldLabel: 'Timebox planning window (days)',
+    //             labelWidth: 150,
+    //             minValue: 0,
+    //             allowDecimals: false,
+    //             // listeners: {
+    //             //     scope: this,
+    //             //     change: function(field, newValue, oldValue) {
+    //             //         if (newValue != oldValue) {
+    //             //             this.updateSettingsValues({
+    //             //                 settings: {
+    //             //                     planningWindow: newValue
+    //             //                 }
+    //             //             });
+    //             //         }
+    //             //     }
+    //             // }
+    //         }, {
+    //             xtype: 'rallycheckboxfield',
+    //             name: 'currentTimebox',
+    //             value: this.getSetting('currentTimebox'),
+    //             fieldLabel: 'Show current, in-progress timebox',
+    //             labelWidth: 150,
+    //             // listeners: {
+    //             //     scope: this,
+    //             //     change: function(field, newValue, oldValue) {
+    //             //         if (newValue != oldValue) {
+    //             //             this.updateSettingsValues({
+    //             //                 settings: {
+    //             //                     currentTimebox: newValue
+    //             //                 }
+    //             //             });
+    //             //         }
+    //             //     }
+    //             // }
+    //         },{
+    //             xtype: 'rallyfieldcombobox',
+    //             name: 'historicalCacheField',
+    //             fieldLabel: 'Historical Cache Field',
+    //             model: timeboxType,
+    //             labelWidth: 150,
+    //             _isNotHidden: function(field) {
+    //                 if (field.hidden){
+    //                     if (field && field.attributeDefinition && field.attributeDefinition.AttributeType.toLowerCase() === "text"){
+                        
+    //                         return true; 
+    //                     }
+    //                 }
+    //                 return false;
+    //             }
+    //         }
+    //     ]
+    // },
+    getSettingsFields: function(){
+        console.log('getConfigItems');
+        var artifactComboFilters = Rally.data.wsapi.Filter.and([{
+            property: "TypePath",
+            operator: "contains",
+            value: "PortfolioItem/"
+        },{
+            property: "Ordinal",
+            value: 1 
+        }]).or({
+            property: "TypePath",
+            value: "HierarchicalRequirement"
+        });
+
+        var timeboxTypeStore = Ext.create('Ext.data.Store', {
+            fields: ['name', 'value'],
+            data: [
+                { name: Constants.TIMEBOX_TYPE_ITERATION_LABEL, value: Constants.TIMEBOX_TYPE_ITERATION },
+                { name: Constants.TIMEBOX_TYPE_RELEASE_LABEL, value: Constants.TIMEBOX_TYPE_RELEASE },
+            ]
+        });
+
+        return [{
+            xtype: 'rallycombobox',
+                name: 'timeboxType',
+                id: 'timeboxType',
+                fieldLabel: 'Timebox type',
+                labelWidth: 150,
+                store: timeboxTypeStore,
+                queryMode: 'local',
+                displayField: 'name',
+                valueField: 'value',
+        },{
+            xtype: 'rallycombobox',
+            name: 'artifactType',
+            //value: settings.artifactType,
+            fieldLabel: 'Artifact type',
+            labelWidth: 150,
+            storeConfig: {
+                model: "TypeDefinition",
+                fetch: ['TypePath','Name'],
+                filters: artifactComboFilters
+            },
+            displayField: 'Name',
+            valueField: 'TypePath',
+        },{
+            xtype: 'rallynumberfield',
+                name: 'timeboxCount',
+                fieldLabel: "Timebox Count",
+                labelWidth: 150,
+                minValue: 1,
+                allowDecimals: false,
+        },{
+            xtype: 'rallynumberfield',
+            name: 'planningWindow',
+            fieldLabel: 'Timebox planning window (days)',
+            labelWidth: 150,
+            minValue: 0,
+            allowDecimals: false
+        },{
+            xtype: 'rallycheckboxfield',
+            name: 'currentTimebox',
+            fieldLabel: 'Show current, in-progress timebox',
+            labelWidth: 150
+        },{
+            xtype: 'rallyfieldcombobox',
+                name: 'historicalCacheField',
+                fieldLabel: 'Historical Cache Field',
+                model: 'Iteration',
+                labelWidth: 150,
+                _isNotHidden: function(field) {
+                    if (field.hidden){
+                        if (field && field.attributeDefinition && field.attributeDefinition.AttributeType.toLowerCase() === "text"){
+                        
+                            return true; 
+                        }
+                    }
+                    return false;
+                }
+        }];
+
+       // var settings = this.getSettings();
+        var timeboxTypeStore = Ext.create('Ext.data.Store', {
+            fields: ['name', 'value'],
+            data: [
+                { name: Constants.TIMEBOX_TYPE_ITERATION_LABEL, value: Constants.TIMEBOX_TYPE_ITERATION },
+                { name: Constants.TIMEBOX_TYPE_RELEASE_LABEL, value: Constants.TIMEBOX_TYPE_RELEASE },
+            ]
+        });
+        var typeStoreData = [
+            { name: 'User Story', value: 'HierarchicalRequirement' },
+        ];
+        // Called from getSettingsFields which is invoked before launch sets up the lowestPiType. Handle
+        // this case.
+        if (this.lowestPiType) {
+            typeStoreData.push({ name: this.lowestPiType.get('Name'), value: this.lowestPiType.get('TypePath') })
+        }
+        var artifactTypeStore = Ext.create('Ext.data.Store', {
+            fields: ['name', 'value'],
+            data: typeStoreData
+        });
+        var timeboxType = settings.timeboxType;
+        return [{
+                xtype: 'combobox',
+                name: 'artifactType',
+                //value: settings.artifactType,
+                fieldLabel: 'Artifact type',
+                labelWidth: 150,
+                store: artifactTypeStore,
+                queryMode: 'local',
+                displayField: 'name',
+                valueField: 'value',
+                // listeners: {
+                //     scope: this,
+                //     change: function(field, newValue, oldValue) {
+                //         if (newValue != oldValue) {
+                //             // this.updateSettingsValues({
+                //             //     settings: {
+                //             //         artifactType: newValue
+                //             //     }
+                //             // });
+                //             // // Choice of artifact has changed
+                //             // this.setModelFieldsForType(newValue);
+                //             // If Feature, also update timebox type to 'Release'
+                //             // var timeboxTypeControl = Ext.ComponentManager.get('timeboxType');
+                //             // if (this.isPiTypeSelected()) {
+                //             //     timeboxTypeControl.setValue(Constants.TIMEBOX_TYPE_RELEASE);
+                //             //     timeboxTypeControl.disable(); // User cannot pick other timeboxes for Features
+                //             // }
+                //             // else {
+                //             //     timeboxTypeControl.enable();
+                //             // }
+                //         }
+                //     }
+                // }
+            },
+            {
+                xtype: 'combobox',
+                name: 'timeboxType',
+                id: 'timeboxType',
+                fieldLabel: 'Timebox type',
+                labelWidth: 150,
+                store: timeboxTypeStore,
+                queryMode: 'local',
+                displayField: 'name',
+                valueField: 'value',
+                disabled: this.isPiTypeSelected(),
+                // listeners: {
+                //     scope: this,
+                //     change: function(field, newValue, oldValue) {
+                //         if (newValue != oldValue) {
+                //             this.updateSettingsValues({
+                //                 settings: {
+                //                     timeboxType: newValue
+                //                 }
+                //             });
+                //             // Choice of timebox has changed
+                //             this.setTimeboxFieldsForType(newValue);
+                //         }
+                //     }
+                // }
+            },
+            {
+                xtype: 'rallynumberfield',
+                name: 'timeboxCount',
+                fieldLabel: "Timebox Count",
+                labelWidth: 150,
+                minValue: 1,
+                allowDecimals: false,
+                // listeners: {
+                //     scope: this,
+                //     change: function(field, newValue, oldValue) {
+                //         if (newValue != oldValue) {
+                //             this.updateSettingsValues({
+                //                 settings: {
+                //                     timeboxCount: newValue
+                //                 }
+                //             });
+                //         }
+                //     }
+                // }
+            }, {
+                xtype: 'rallynumberfield',
+                name: 'planningWindow',
+                fieldLabel: 'Timebox planning window (days)',
+                labelWidth: 150,
+                minValue: 0,
+                allowDecimals: false,
+                // listeners: {
+                //     scope: this,
+                //     change: function(field, newValue, oldValue) {
+                //         if (newValue != oldValue) {
+                //             this.updateSettingsValues({
+                //                 settings: {
+                //                     planningWindow: newValue
+                //                 }
+                //             });
+                //         }
+                //     }
+                // }
+            }, {
+                xtype: 'rallycheckboxfield',
+                name: 'currentTimebox',
+                fieldLabel: 'Show current, in-progress timebox',
+                labelWidth: 150,
+                // listeners: {
+                //     scope: this,
+                //     change: function(field, newValue, oldValue) {
+                //         if (newValue != oldValue) {
+                //             this.updateSettingsValues({
+                //                 settings: {
+                //                     currentTimebox: newValue
+                //                 }
+                //             });
+                //         }
+                //     }
+                // }
+            },{
+                xtype: 'rallyfieldcombobox',
+                name: 'historicalCacheField',
+                fieldLabel: 'Historical Cache Field',
+                model: timeboxType,
+                labelWidth: 150,
+                _isNotHidden: function(field) {
+                    if (field.hidden){
+                        if (field && field.attributeDefinition && field.attributeDefinition.AttributeType.toLowerCase() === "text"){
+                        
+                            return true; 
+                        }
+                    }
+                    return false;
+                }
+            }
+        ]
     }
 });
