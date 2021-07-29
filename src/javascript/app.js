@@ -650,7 +650,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         // Get the N most recent timeboxes in the current project
         // Sort by name
         // Get timeboxes by name from all child projects
-
+    
         var timeboxFilterProperty = this.timeboxEndDateField;
         if (this.getSetting('currentTimebox')) {
             timeboxFilterProperty = this.timeboxStartDateField;
@@ -707,11 +707,13 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         return this.getSetting('historicalCacheField');
     },
     fetchTimeboxes: function(timeboxFilter) {
+        var deferred = Ext.create('Deft.Deferred');
         if (timeboxFilter) {
             // return TimeboxCacheModelBuilder.build(this.timeboxType,this.timeboxType + "Extended",this.getHistorcalCacheField()).then({
             //     scope: this,
             //     success: function(model){
-                    return Ext.create('Rally.data.wsapi.Store', {
+                this.setLoading("Loading Timeboxes...");    
+                Ext.create('Rally.data.wsapi.Store', {
                         model: this.timeboxType,
                         autoLoad: false,
                         pageSize: 2000,
@@ -723,13 +725,17 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                             direction: 'DESC'
                         }],
                         filters: [timeboxFilter]
-                    }).load();
+                    }).load({callback: function(records,operation){
+                        this.setLoading(false);
+                        deferred.resolve(records);
+                    }, scope: this });
             //     }
             // });
         }
         else {
-            return [];
+            deferred.resolve([]);
         }
+        return deferred.promise;
     },
     getTimeboxFilter: function(timeboxes,operation){
         var timeboxFilter = _.map(timeboxes, function(timebox) {
