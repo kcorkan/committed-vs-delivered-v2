@@ -719,7 +719,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                         pageSize: 2000,
                         limit: Infinity,
                         fetch: ['ObjectID', this.timeboxStartDateField, this.timeboxEndDateField, 'Name',this.getHistorcalCacheField(),'Project'],
-                        //enablePostGet: true,
+                        enablePostGet: true,
                         sorters: [{
                             property: this.timeboxEndDateField,
                             direction: 'DESC'
