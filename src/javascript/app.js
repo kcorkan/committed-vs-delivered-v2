@@ -685,10 +685,12 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     },
     buildHistoricalCache: function(timeboxes) {
         // Group by timebox name
+        var dataContext = this.getContext().getDataContext();
+        dataContext.includePermissions = false; 
         return Ext.create('TimeboxHistoricalCacheFactory',{
             timeboxes: timeboxes,
             timeboxType: this.getSetting('timeboxType'),
-            dataContext: this.getContext().getDataContext(),
+            dataContext: dataContext,
             historicalCacheField: this.getHistorcalCacheField(),
             timeboxStartDateField: 'StartDate',
             timeboxEndDateField: 'EndDate',
@@ -766,13 +768,17 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         return deferred.promise;       
     },
     fetchTimeboxGroup: function(timeboxFilters){
+        var dataContext = this.getContext().getDataContext();
+        dataContext.includePermissions = false;  
         return Ext.create('Rally.data.wsapi.Store', {
             model: this.timeboxType,
             autoLoad: false,
             pageSize: 2000,
+            context: dataContext,
             limit: Infinity,
             fetch: ['ObjectID', this.timeboxStartDateField, this.timeboxEndDateField, 'Name',this.getHistorcalCacheField(),'Project'],
             enablePostGet: true,
+            includePermissions: false,
             sorters: [{
                 property: this.timeboxEndDateField,
                 direction: 'DESC'
