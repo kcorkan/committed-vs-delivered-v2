@@ -380,8 +380,8 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                     if (cache.countDeliveredByAdded && cache.countDeliveredByAdded.length > 0){
                         var plannedIndexDelivered =Math.min(planningWindow+1,cache.countDeliveredByAdded.length);
                         committedDelivered += cache.countDeliveredByAdded.slice(0,plannedIndexDelivered).reduce(function(a,c){return a+c; });
-                        if (cache.countDeliveredByAdded.length > plannedIndexDelivered){
-                            unplannedDelivered += cache.countDeliveredByAdded.slice(plannedIndexDelivered+1).reduce(function(a,c){return a+c; });
+                        if (cache.countDeliveredByAdded.length > plannedIndexDelivered+1){
+                            unplannedDelivered += cache.countDeliveredByAdded.slice(plannedIndexDelivered).reduce(function(a,c){return a+c; });
                         }
                     }
                 } //end for timeboxGroups[i].length 
