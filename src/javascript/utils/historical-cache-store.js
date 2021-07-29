@@ -63,7 +63,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
             } else {
                 console.log('fetchSnapshots start:' + Date.now());
                 console.log('fetchSnapshots filters:', filters);
-                
+
                 this.fetchSnapshots(filters).then({
                     success: function(snapshots){
                         console.log('fetchSnapshots end:' + Date.now() + ' snaps.length: ' + snapshots.length);
@@ -329,7 +329,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                 context: this.dataContext,
                 fetch: [this.timeboxType, '_ValidFrom', '_ValidTo', 'ObjectID','AcceptedDate'],
                 hydrate: [],
-                pageSize: 10000,
+                pageSize: 20000,
                 limit: Infinity,
                 remoteSort: false,
                 compress: true,
