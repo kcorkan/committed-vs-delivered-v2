@@ -118,6 +118,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
             console.log('processsnapshots',snapshots,timeboxGroup);
             var startDate = timeboxGroup[0].get(this.timeboxStartDateField).toISOString(),
                 endDate = timeboxGroup[0].get(this.timeboxEndDateField).toISOString();
+                console.log('timeboxGroup ', timeboxGroup[0].get('Name'));
 
 
             var snapshotsByTimeboxOid = {};
@@ -188,6 +189,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
 
                 var snaps = _.sortBy(snapArray, ["_ValidFrom"]);
                 cache.objects.push(snapOid);
+                console.log(snaps[0].FormattedID);
 
                 var addedIndex = this.getDayInTimebox(snaps[0]._ValidFrom,startDateMs,endDateMs),
                     lastSnap = snaps[snaps.length-1], 
@@ -331,7 +333,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
             var store = Ext.create('Rally.data.lookback.SnapshotStore', {
                 autoLoad: false,
                 context: this.dataContext,
-                fetch: [this.timeboxType, '_ValidFrom', '_ValidTo', 'ObjectID','AcceptedDate'],
+                fetch: [this.timeboxType, '_ValidFrom', '_ValidTo', 'ObjectID','AcceptedDate','FormattedID'],
                 hydrate: [],
                 pageSize: 20000,
                 limit: Infinity,
