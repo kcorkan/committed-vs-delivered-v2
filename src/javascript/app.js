@@ -279,8 +279,16 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             arr = arr.concat(cache.objects);
             return arr;  
         },[]);    
-        var csvText = CArABU.technicalservices.FileUtilities.convertDataArrayToCSVText(this.currentData, this.getExportFieldsHash());
-        CArABU.technicalservices.FileUtilities.saveCSVToFile(csvText, 'comitted.csv');
+
+        if (dataArray.length > 0){
+            var keys = _.reduce(Object.keys(dataArray[0]), function(hash,v,k){
+                hash[k]=k;
+                return hash; 
+            },{});
+            var csvText = CArABU.technicalservices.FileUtilities.convertDataArrayToCSVText(dataArray, keys);
+            CArABU.technicalservices.FileUtilities.saveCSVToFile(csvText, 'comitted.csv');
+        }
+        
     },
 
     getFieldsFromButton: function() {
