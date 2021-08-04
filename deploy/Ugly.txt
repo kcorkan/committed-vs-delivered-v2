@@ -3,13 +3,13 @@
 <head>
     <title>CATS-Committed vs Delivered v2-0.1</title>
     <!--  (c) 2017 CA Technologies.  All Rights Reserved. -->
-    <!--  Build Date: Wed Aug 04 2021 15:29:24 GMT-0600 (Mountain Daylight Time) -->
+    <!--  Build Date: Wed Aug 04 2021 15:31:24 GMT-0600 (Mountain Daylight Time) -->
 
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Wed Aug 04 2021 15:29:24 GMT-0600 (Mountain Daylight Time)";
+        var APP_BUILD_DATE = "Wed Aug 04 2021 15:31:24 GMT-0600 (Mountain Daylight Time)";
         var ARTIFACT = "";
         var BUILDER  = "kc683795";
-        var CHECKSUM = 141365126773;
+        var CHECKSUM = 141365123971;
     </script>
 
     <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
