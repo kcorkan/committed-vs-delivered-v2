@@ -133,6 +133,30 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     getShowControls: function(){
         return this.projectIsHighLevel === false;
     },
+    clearCache: function(){
+        this.getTimeboxes().then({
+            success: this.updateTimeboxes
+        })
+    },
+    updateTimeboxes: function(timeboxes){
+        for (var i=0; i<timeboxes.length; i++){
+            timeboxes[i].set(this.getHistorcalCacheField(),"");
+        }
+        if (timeboxes.length > 0){
+            var store = Ext.create('Rally.data.wsapi.batch.Store', {
+                data: timeboxes
+            });
+            store.sync({
+                success: function() {
+                    console.log('timeboxRecords saved',timeboxes.length);
+                },
+                failure: function(){
+                    console.log('timeboxRecords save FAILED',timeboxes.length);
+                }
+            });
+        }
+
+    },
     /**
      * Return a promise that resolves once the controls are initialized and
      * have initial values
@@ -142,6 +166,12 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         var context = this.getContext();
         var controlsArea = this.down('#controls-area');
         controlsArea.removeAll();
+        controlsArea.add({
+            xtype: 'rallybutton',
+            iconCls: 'refresh',
+            handler: this.clearCache,
+            scope: this 
+        });
         if (this.getShowControls()){
             controlsArea.add([{
                 xtype: 'rallyinlinefilterbutton',
