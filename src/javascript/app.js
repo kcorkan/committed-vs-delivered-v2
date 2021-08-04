@@ -134,14 +134,9 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         return this.projectIsHighLevel === false;
     },
     clearCache: function(){
-        this.getTimeboxes().then({
-            success: this.updateTimeboxes,
-            scope: this 
-        })
-    },
-    updateTimeboxes: function(timeboxes){
-        console.log('updateTimeboxes',timeboxes);
-        var cacheField = this.getHistorcalCacheField();
+        var timeboxes = this.timeboxes,
+            cacheField = this.getHistorcalCacheField(); 
+        
         for (var i=0; i<timeboxes.length; i++){
             timeboxes[i].set(cacheField,"");
         }
@@ -158,8 +153,8 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                 }
             });
         }
-
     },
+
     /**
      * Return a promise that resolves once the controls are initialized and
      * have initial values
@@ -271,6 +266,21 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         }
 
         return filterDeferred.promise;
+    },
+    exportCacheData: function(){
+        var timeboxes = this.timeboxes,
+            historicalCacheField = this.getHistorcalCacheField(); 
+         
+        var dataArray = _.reduce(timeboxes, function(arr, tb){
+            var cache = tb.get(historicalCacheField);
+            try {
+                cache = JSON.parse(cache);
+            } catch (ex){}
+            arr = arr.concat(cache.objects);
+            return arr;  
+        },[]);    
+        var csvText = CArABU.technicalservices.FileUtilities.convertDataArrayToCSVText(this.currentData, this.getExportFieldsHash());
+        CArABU.technicalservices.FileUtilities.saveCSVToFile(csvText, 'comitted.csv');
     },
 
     getFieldsFromButton: function() {
@@ -720,6 +730,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         // Group by timebox name
         var dataContext = this.getContext().getDataContext();
         dataContext.includePermissions = false; 
+        this.timeboxes = timeboxes; 
         return Ext.create('TimeboxHistoricalCacheFactory',{
             timeboxes: timeboxes,
             timeboxType: this.getSetting('timeboxType'),
