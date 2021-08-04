@@ -135,13 +135,15 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     },
     clearCache: function(){
         this.getTimeboxes().then({
-            success: this.updateTimeboxes
+            success: this.updateTimeboxes,
+            scope: this 
         })
     },
     updateTimeboxes: function(timeboxes){
         console.log('updateTimeboxes',timeboxes);
+        var cacheField = this.getHistorcalCacheField();
         for (var i=0; i<timeboxes.length; i++){
-            timeboxes[i].set(this.getHistorcalCacheField(),"");
+            timeboxes[i].set(cacheField,"");
         }
         if (timeboxes.length > 0){
             var store = Ext.create('Rally.data.wsapi.batch.Store', {
