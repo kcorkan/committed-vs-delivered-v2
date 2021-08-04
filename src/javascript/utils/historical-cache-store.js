@@ -188,13 +188,19 @@ Ext.define('TimeboxHistoricalCacheFactory', {
             _.each(snapArraysByOid, function(snapArray,snapOid){
 
                 var snaps = _.sortBy(snapArray, ["_ValidFrom"]);
-                cache.objects.push(snapOid);
+                var cacheObject = {
+                    "FormattedID": snaps[0].FormattedID
+                }
+                
                 console.log(snaps[0].FormattedID);
 
                 var addedIndex = this.getDayInTimebox(snaps[0]._ValidFrom,startDateMs,endDateMs),
                     lastSnap = snaps[snaps.length-1], 
                     acceptedDate = lastSnap.AcceptedDate || null;
-      
+                    cacheObject.AcceptedDate = acceptedDate;
+                    cacheObject.AddedOnOrBeforeDate = snaps[0]._ValidFrom;
+                    cacheObject.LastDate = lastSnap._ValidTo;  
+                    cache.objects.push(cacheObject);
                     if (addedIndex >= 0){
                         var delivered = acceptedDate && Date.parse(acceptedDate) < endDateMs && Date.parse(lastSnap._ValidTo) > endDateMs || false;
                 
