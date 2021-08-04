@@ -139,6 +139,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         })
     },
     updateTimeboxes: function(timeboxes){
+        console.log('updateTimeboxes',timeboxes);
         for (var i=0; i<timeboxes.length; i++){
             timeboxes[i].set(this.getHistorcalCacheField(),"");
         }
