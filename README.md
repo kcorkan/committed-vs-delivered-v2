@@ -9,9 +9,7 @@
 Artifact Moving 
 If a story is committed to a sprint and the story is accepted within the same sprint before the end date, it will be considered "Delivered" for that sprint.  
 
-If that same story is moved out of the sprint into another sprint it will be marked as committed to that sprint when it is moved into the sprint.  If it is in the Accepted State  on the last day of the sprint, then it will also count as delivered for that sprint.  
-
-The original committed v delivered only looks at the current sprint and state of the item that the item is in for stories that were accepted.  
+If that same story is moved out of the sprint into another sprint it will be marked as committed to that sprint when it is moved into the sprint.  If it is in the Accepted within the sprint, then it will also count as delivered for that sprint.  
 
 Scenario:  Customer has a "CV Defect" bucket story that they add defects to within a sprint.  That may be accepted by the end of the sprint, but then it is moved into new sprint and more defects are added to it, changing it's accepted state.  
 
@@ -22,20 +20,24 @@ If the item was accepted and deleted before the sprint ends, it will not be show
 If something is added to the sprint and removed before the planning window, it will show as committed.  
 
 ## Todo
-- incorporate engineering optimization changes
-- Add by estimate 
-- add filter at lower level 
-- add clear cache  
+- validation of numbers/differences 
+- additional optimization changes
+- Add by estimate ?
+- add filter at lower level ?
 - test release for portfolio items 
 - update loading masks 
 - get rid of filter in upper left
-- add slider for planning window
-- add cache version for checking
-- update settings so that the histocial field follows the selected timebox
-
+- add slider for planning window ?
+- add cache version for checking/cache management
+- add cache detail and compressed version 
+- add late delivery ?
+- clean up logging
 
 ## Development Notes
 
+The original committed v delivered looks at items in the iteration between the planning window and end of the iteration.  It then uses the oids from those items to load current items and get the accepted date.  Thus, items that have been deleted are not accounted for.  
+
+In both versions items will be counted for each iteration they are associated with in the planned window.  
 
 ### First Load
 

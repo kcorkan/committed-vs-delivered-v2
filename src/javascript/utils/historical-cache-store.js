@@ -141,6 +141,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
             var cacheByTimeboxOid = {};
             _.each(snapshotsByTimeboxOid, function(snapArrayObject,timeboxOid){
                 cacheByTimeboxOid[timeboxOid] = this.buildAddedDeliveredData(snapArrayObject,startDate,endDate);
+                //cacheByTimeboxOid[timeboxOid].objects = snapArrayObject;
             },this);
 
             var historicalCacheField = this.getHistoricalCacheField();
@@ -186,6 +187,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
             _.each(snapArraysByOid, function(snapArray,snapOid){
 
                 var snaps = _.sortBy(snapArray, ["_ValidFrom"]);
+                cache.objects.push(snapOid);
 
                 var addedIndex = this.getDayInTimebox(snaps[0]._ValidFrom,startDateMs,endDateMs),
                     lastSnap = snaps[snaps.length-1], 
@@ -211,10 +213,12 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                 timeboxDays = Math.ceil((endDateMs - startDateMs)/86400000);
 
             return {
+                version: 2,
                 startDate: startDate,
                 endDate: endDate,
                 countAdded: this.initializeArray(timeboxDays+1,0),
-                countDeliveredByAdded: this.initializeArray(timeboxDays+1,0)
+                countDeliveredByAdded: this.initializeArray(timeboxDays+1,0),
+                objects: []
             };
         },
         initializeArray: function(arrLength, arrValue){
