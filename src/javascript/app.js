@@ -247,8 +247,9 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                             items: [{
                                 text: 'Export to CSV...',
                                 handler: function() {
-                                    var csvText = CArABU.technicalservices.FileUtilities.convertDataArrayToCSVText(this.currentData, this.getExportFieldsHash());
-                                    CArABU.technicalservices.FileUtilities.saveCSVToFile(csvText, 'comitted.csv');
+                                    this.exportCacheData();
+                                    //var csvText = CArABU.technicalservices.FileUtilities.convertDataArrayToCSVText(this.currentData, this.getExportFieldsHash());
+                                    //CArABU.technicalservices.FileUtilities.saveCSVToFile(csvText, 'comitted.csv');
                                 },
                                 scope: this
                             }]
