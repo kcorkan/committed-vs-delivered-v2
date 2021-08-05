@@ -8,7 +8,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
     timeboxEndDateField: null,
     timeboxStartDateField: null,
     namePrefix: "historicalCache", //for preference cache only
-    saveCacheToTimebox: true,
+    saveCacheToTimebox: false,
     historicalCacheField: null, 
     
     constructor: function (config) {
@@ -42,7 +42,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
             
             var promises = _.map(timeboxGroups, function(timeboxGroup){
                 if (!this.saveCacheToTimebox){
-                    this.updateTimeboxesWithPreferences(timeboxGroup);
+                    //this.updateTimeboxesWithPreferences(timeboxGroup);
                 }
                 console.log('timeboxGroup 1',timeboxGroup)
                 return this.buildTimeboxCache(timeboxGroup);
@@ -175,7 +175,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                 if (this.saveCacheToTimebox){
                     this.saveHistoricalCacheToTimebox(newCache,timeboxGroup);
                 } else {
-                    this.saveHistoricalCache(newCache);
+                    //this.saveHistoricalCache(newCache);
                 }
             }
            return cacheByTimeboxOid; 
@@ -189,7 +189,8 @@ Ext.define('TimeboxHistoricalCacheFactory', {
 
                 var snaps = _.sortBy(snapArray, ["_ValidFrom"]);
                 var cacheObject = {
-                    "FormattedID": snaps[0].FormattedID
+                    "FormattedID": snaps[0].FormattedID,
+                    "ObjectID": snapOid
                 }
                 
                 console.log(snaps[0].FormattedID);
@@ -198,8 +199,10 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                     lastSnap = snaps[snaps.length-1], 
                     acceptedDate = lastSnap.AcceptedDate || null;
                     cacheObject.AcceptedDate = acceptedDate;
-                    cacheObject.AddedOnOrBeforeDate = snaps[0]._ValidFrom;
-                    cacheObject.LastDate = lastSnap._ValidTo;  
+                    cacheObject.ValidFrom = snaps[0]._ValidFrom;
+                    cacheObject.ValidTo = lastSnap._ValidTo;  
+                    cacheObject.Count = snaps.length; 
+                    
                     cache.objects.push(cacheObject);
                     if (addedIndex >= 0){
                         var delivered = acceptedDate && Date.parse(acceptedDate) < endDateMs && Date.parse(lastSnap._ValidTo) > endDateMs || false;
@@ -382,19 +385,22 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                     timeboxRecords.push(timebox);
                 }
             }
-            if (timeboxRecords.length > 0){
-                var store = Ext.create('Rally.data.wsapi.batch.Store', {
-                    data: timeboxRecords
-                });
-                store.sync({
-                    success: function() {
-                        console.log('timeboxRecords saved',timeboxRecords.length);
-                    },
-                    failure: function(){
-                        console.log('timeboxRecords save FAILED',timeboxRecords.length);
-                    }
-                });
+            if (this.saveCacheToTimebox === true){
+                if (timeboxRecords.length > 0){
+                    var store = Ext.create('Rally.data.wsapi.batch.Store', {
+                        data: timeboxRecords
+                    });
+                    store.sync({
+                        success: function() {
+                            console.log('timeboxRecords saved',timeboxRecords.length);
+                        },
+                        failure: function(){
+                            console.log('timeboxRecords save FAILED',timeboxRecords.length);
+                        }
+                    });
+                }
             }
+            
         },
         saveHistoricalCache: function(newCache){
             //Save to preferences or save to objects

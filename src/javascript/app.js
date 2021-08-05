@@ -58,31 +58,45 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     },
 
     launch: function() {
-        console.log('settings',this.getSettings());
-        if (this.getSaveCacheToTimebox() && !this.getHistorcalCacheField()){
-            this._showError("Please configure a historical cache field.");
-        } else {
-            Deft.Promise.all([
-                Rally.data.util.PortfolioItemHelper.getPortfolioItemTypes(),
-                this.isProjectHighLevel()
-            ]).then({
-                scope: this,
-                success: function(results) {
-                    var portfolioItemTypes = results[0];
-                    this.projectIsHighLevel = results[1]; //Setting to determine if we show filters or not
-                    this.portfolioItemTypes = _.sortBy(portfolioItemTypes, function(type) {
-                        return type.get('Ordinal');
-                    });
-                    this.lowestPiType = this.portfolioItemTypes[0];
-                    this.setModelFieldsForType(this.getSetting('artifactType'));
-                    this.setTimeboxFieldsForType(this.getSetting('timeboxType'));
-                    this.viewChange();
-                },
-                failure: function(msg) {
-                    this._showError(msg);
-                },
-            });
+        console.log(this.getSaveCacheToTimebox(), this.getHistorcalCacheField())
+        if (this.getHistorcalCacheField() === null){
+            this._showError("Please configure a historical cache field or turn off caching.");
+            return; 
         }
+        console.log('settings',this.getSettings());
+        var promises = [
+            Rally.data.util.PortfolioItemHelper.getPortfolioItemTypes(),
+            this.isProjectHighLevel()
+        ];
+        if (!this.getSaveCacheToTimebox()){
+            promises.push(TimeboxCacheModelBuilder.build(this.getTimeboxType(),this.getTimeboxType() + "Extended",this.getHistorcalCacheField()));
+        } 
+        
+        Deft.Promise.all(promises).then({
+            scope: this,
+            success: function(results) {
+                var portfolioItemTypes = results[0];
+                this.projectIsHighLevel = results[1]; //Setting to determine if we show filters or not
+                this.portfolioItemTypes = _.sortBy(portfolioItemTypes, function(type) {
+                    return type.get('Ordinal');
+                });
+                this.lowestPiType = this.portfolioItemTypes[0];
+                this.setModelFieldsForType(this.getSetting('artifactType'));
+                this.setTimeboxFieldsForType(this.getTimeboxType());
+                if (results.length > 2){
+                    this.timeboxModel = results[2];
+                } else {
+                    this.timeboxModel = this.timeboxType;
+                }
+                this.viewChange();
+            },
+            failure: function(msg) {
+                this._showError(msg);
+            }
+        });
+    },
+    getTimeboxType: function(){
+        return this.getSetting('timeboxType');
     },
     isProjectHighLevel: function(){
         var deferred = Ext.create('Deft.Deferred');
@@ -140,7 +154,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         for (var i=0; i<timeboxes.length; i++){
             timeboxes[i].set(cacheField,"");
         }
-        if (timeboxes.length > 0){
+        if (timeboxes.length > 0 && this.getSaveCacheToTimebox()){
             var store = Ext.create('Rally.data.wsapi.batch.Store', {
                 data: timeboxes
             });
@@ -271,21 +285,30 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     exportCacheData: function(){
         var timeboxes = this.timeboxes,
             historicalCacheField = this.getHistorcalCacheField(); 
-         
+        var startDateField = this.timeboxStartDateField,
+            endDateField = this.timeboxEndDateField; 
         var dataArray = _.reduce(timeboxes, function(arr, tb){
             var cache = tb.get(historicalCacheField);
             try {
                 cache = JSON.parse(cache);
             } catch (ex){}
+            console.log('exportCache',cache);
+            for (var i=0; i<cache.objects.length; i++){
+                cache.objects[i].Iteration = tb.get('Name');
+                cache.objects[i].Project = tb.get('Project').Name;
+                cache.objects[i].StartDate = tb.get(startDateField);
+                cache.objects[i].EndDate = tb.get(endDateField);
+            }
             arr = arr.concat(cache.objects);
             return arr;  
         },[]);    
-
         if (dataArray.length > 0){
-            var keys = _.reduce(Object.keys(dataArray[0]), function(hash,v,k){
+            var keys = _.reduce(Object.keys(dataArray[0]), function(hash,k){
                 hash[k]=k;
                 return hash; 
             },{});
+            console.log('exportCache', keys);
+        
             var csvText = CArABU.technicalservices.FileUtilities.convertDataArrayToCSVText(dataArray, keys);
             CArABU.technicalservices.FileUtilities.saveCSVToFile(csvText, 'comitted.csv');
         }
@@ -707,8 +730,9 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         if (this.getSetting('currentTimebox')) {
             timeboxFilterProperty = this.timeboxStartDateField;
         }
+
         return Ext.create('Rally.data.wsapi.Store', {
-            model: this.timeboxType,
+            model: this.timeboxModel || this.timeboxType,
             autoLoad: false,
             context: {
                 projectScopeDown: false,
@@ -756,42 +780,45 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         // });
     },
     getSaveCacheToTimebox: function(){
-        return this.getSetting('saveCacheToTimebox') === true || this.getSetting('saveCacheToTimebox') === "true";
+        return this.getSetting('saveCacheToTimebox') === true || this.getSetting('saveCacheToTimebox') === "true" || false;
     },
     getHistorcalCacheField: function(){
+        if (this.getSaveCacheToTimebox() !== true){
+            return '__virtualCache';
+        }
         return this.getSetting('historicalCacheField');
     },
-    // fetchTimeboxes_orig: function(timeboxFilter) {
-    //     var deferred = Ext.create('Deft.Deferred');
-    //     if (timeboxFilter) {
-    //         // return TimeboxCacheModelBuilder.build(this.timeboxType,this.timeboxType + "Extended",this.getHistorcalCacheField()).then({
-    //         //     scope: this,
-    //         //     success: function(model){
-    //             this.setLoading("Loading Timeboxes...");    
-    //             Ext.create('Rally.data.wsapi.Store', {
-    //                     model: this.timeboxType,
-    //                     autoLoad: false,
-    //                     pageSize: 2000,
-    //                     limit: Infinity,
-    //                     fetch: ['ObjectID', this.timeboxStartDateField, this.timeboxEndDateField, 'Name',this.getHistorcalCacheField(),'Project'],
-    //                     enablePostGet: true,
-    //                     sorters: [{
-    //                         property: this.timeboxEndDateField,
-    //                         direction: 'DESC'
-    //                     }],
-    //                     filters: [timeboxFilter]
-    //                 }).load({callback: function(records,operation){
-    //                     this.setLoading(false);
-    //                     deferred.resolve(records);
-    //                 }, scope: this });
-    //         //     }
-    //         // });
-    //     }
-    //     else {
-    //         deferred.resolve([]);
-    //     }
-    //     return deferred.promise;
-    // },
+    fetchTimeboxes_orig: function(timeboxFilter) {
+        var deferred = Ext.create('Deft.Deferred');
+        if (timeboxFilter) {
+            // return TimeboxCacheModelBuilder.build(this.timeboxType,this.timeboxType + "Extended",this.getHistorcalCacheField()).then({
+            //     scope: this,
+            //     success: function(model){
+                this.setLoading("Loading Timeboxes...");    
+                Ext.create('Rally.data.wsapi.Store', {
+                        model: this.timeboxType,
+                        autoLoad: false,
+                        pageSize: 2000,
+                        limit: Infinity,
+                        fetch: ['ObjectID', this.timeboxStartDateField, this.timeboxEndDateField, 'Name',this.getHistorcalCacheField(),'Project'],
+                        enablePostGet: true,
+                        sorters: [{
+                            property: this.timeboxEndDateField,
+                            direction: 'DESC'
+                        }],
+                        filters: [timeboxFilter]
+                    }).load({callback: function(records,operation){
+                        this.setLoading(false);
+                        deferred.resolve(records);
+                    }, scope: this });
+            //     }
+            // });
+        }
+        else {
+            deferred.resolve([]);
+        }
+        return deferred.promise;
+    },
     fetchTimeboxes: function(timeboxes, operation){
         var deferred = Ext.create('Deft.Deferred');
 
@@ -1287,6 +1314,11 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             fieldLabel: 'Show current, in-progress timebox',
             labelWidth: 150
         },{
+            xtype: 'rallycheckboxfield',
+            name: 'saveCacheToTimebox',
+            fieldLabel: 'Save Cache',
+            labelWidth: 150    
+        },{
             xtype: 'rallyfieldcombobox',
                 name: 'historicalCacheField',
                 fieldLabel: 'Historical Cache Field',
@@ -1303,6 +1335,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                     }
                     return false;
                 }
+       
         }];
 
        // var settings = this.getSettings();
