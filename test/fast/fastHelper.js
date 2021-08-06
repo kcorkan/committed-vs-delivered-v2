@@ -78,12 +78,18 @@ var buildTimeboxes_simple = function(startDate,endDate,count){
 
 Ext.define('mockTimebox',{
     extend: 'Ext.data.Model',
+    mixins:  ['TimeboxCacheMixin'],
+    timeboxStartDateField: "StartDate",
+    timeboxEndDateField: "EndDate",
+    historicalCacheField: TimeboxCacheModelBuilder.VIRTUAL_CACHE_FIELD_NAME,
     fields: [
         {name:'ObjectID', type: 'int'},
         {name:'StartDate',type:'datetime'},
         {name:'EndDate',type:'datetime'},
-        {name: 'Name',type:'string'},
-        {name:'id',type:'int',convert:useObjectID}
+        {name:'Name',type:'string'},
+        {name: 'Project', type:'object'},
+        {name:'id',type:'int',convert:useObjectID},
+        {name: TimeboxCacheModelBuilder.VIRTUAL_CACHE_FIELD_NAME, type:'object', default: null}
     ]
 });
 

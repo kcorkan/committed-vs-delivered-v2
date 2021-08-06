@@ -1,14 +1,8 @@
 describe("Example slow test", function() {
     var model;
-    var ready_to_test;
-    
-    var app;
-    
-    beforeEach(function(){
-        model = null;
-        ready_to_test = false;
-    });
-    
+    var ready_to_test = null;
+    var flag;
+
     it("should have written tests",function(){
         var app = Rally.getApp();
         console.log('app', app);

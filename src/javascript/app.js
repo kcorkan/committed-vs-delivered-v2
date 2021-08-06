@@ -59,7 +59,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
 
     launch: function() {
         if (this.getSaveCacheToTimebox() === true && this.getHistorcalCacheField() === null){
-            this._showError("Please configure a historical cache field or turn off caching.");
+            this._showAppMessage("Please configure a historical cache field or turn off caching.");
             return; 
         }
 
@@ -69,23 +69,15 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         console.log('settings',this.getSettings());
         
         var promises = [
-           // Rally.data.util.PortfolioItemHelper.getPortfolioItemTypes(),
             this.isProjectHighLevel(),
-            TimeboxCacheModelBuilder.build(this.getTimeboxType(),this.getTimeboxType() + "_x",this.getHistorcalCacheField(),this.timeboxStartDateField, this.timeboxEndDateField, this.getDeliveredDateField())
+            TimeboxCacheModelBuilder.build(this.getTimeboxType(),this.getTimeboxType() + "_x",this.getHistorcalCacheField(),this.timeboxStartDateField, this.timeboxEndDateField)
         ];
 
         Deft.Promise.all(promises).then({
             scope: this,
             success: function(results) {
-               // var portfolioItemTypes = results[0];
                 this.projectIsHighLevel = results[0]; //Setting to determine if we show filters or not
                 this.timeboxModel = results[1];
-        
-                // this.portfolioItemTypes = _.sortBy(portfolioItemTypes, function(type) {
-                //     return type.get('Ordinal');
-                // });
-                // this.lowestPiType = this.portfolioItemTypes[0];
-                
                 this.viewChange();
             },
             failure: function(msg) {
@@ -120,7 +112,15 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         return deferred.promise;
     },
     _showError: function(msg){
-        console.log('error: ' + msg);
+        console.log('_showError: ' + msg);
+        Rally.ui.notify.Notifier.showError({message: msg});
+    },
+    _showAppMessage: function(msg){
+        this.removeAll();
+        this.add({
+            xtype: 'container',
+            html: Ext.String.format('<div class="no-data-container"><div class="secondary-message">{0}</div></div>',msg)
+        });
     },
     setModelFieldsForType: function(artifactType) {
         this.modelName = artifactType;
@@ -148,8 +148,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         return this.projectIsHighLevel === false;
     },
     clearCache: function(){
-        var timeboxes = this.timeboxes,
-            cacheField = this.getHistorcalCacheField(); 
+        var timeboxes = this.timeboxes; 
         
         for (var i=0; i<timeboxes.length; i++){
             timeboxes[i].clearCache();
@@ -160,15 +159,15 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             });
             store.sync({
                 success: function() {
-                    console.log('timeboxRecords saved',timeboxes.length);
+                    Rally.ui.notify.Notifier.show({message: Ext.String.format("{0} timebox records updated successfully.",timeboxes.length)});
                 },
                 failure: function(){
-                    console.log('timeboxRecords save FAILED',timeboxes.length);
-                }
+                    this._showError("timeboxRecords update failed with error.");
+                },
+                scope: this 
             });
         }
     },
-
     /**
      * Return a promise that resolves once the controls are initialized and
      * have initial values
@@ -283,17 +282,14 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         return filterDeferred.promise;
     },
     exportCacheData: function(){
-        var timeboxes = this.timeboxes,
-            historicalCacheField = this.getHistorcalCacheField(); 
-        var startDateField = this.timeboxStartDateField,
-            endDateField = this.timeboxEndDateField; 
+        var timeboxes = this.timeboxes; 
+
         var dataArray = _.reduce(timeboxes, function(arr, tb){
             var cacheExportObjects = tb.getCacheDataForExport(0);
             arr = arr.concat(cacheExportObjects);
             return arr;  
         },[]);    
-        if (dataArray.length > 0){
-            
+        if (dataArray.length > 0){      
             var csvText = CArABU.technicalservices.FileUtilities.convertDataArrayToCSVText(dataArray, TimeboxCacheModelBuilder.getExportFieldsHash());
             CArABU.technicalservices.FileUtilities.saveCSVToFile(csvText, 'comitted.csv');
         }
@@ -307,20 +303,6 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             result = fieldPicker.getFields();
         }
         return result;
-    },
-
-    getExportFieldsHash: function() {
-        var fields = this.getFieldsFromButton();
-        // Special case, add the accepted date after all fields from the field picker so it
-        // is next to the derirved fields instead of in the first column of export.
-        // Use _.unique to remove duplicate as that field is also always selected.
-        fields = _.without(fields, this.acceptedDateField);
-        fields.push(this.acceptedDateField);
-        fields = fields.concat(Constants.DERIVED_FIELDS);
-        return _.reduce(fields, function(accum, field) {
-            accum[field] = this.headerName(field);
-            return accum;
-        }, {}, this);
     },
 
     headerName: function(field) {
@@ -351,19 +333,6 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         return result;
     },
 
-    // getFiltersFromButton: function() {
-    //     var filters = null;
-    //     try {
-    //         filters = this.filterButton.getWsapiFilter()
-    //     }
-    //     catch (ex) {
-    //         // Ignore if filter button not yet available
-    //     }
-
-    //     return filters;
-    // },
-
-    // Usual monkey business to size gridboards
     onResize: function() {
         this.callParent(arguments);
         var gridArea = this.down('#grid-area');
@@ -431,26 +400,6 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                     committed += metrics.planned;
                     unplannedDelivered += metrics.unplannedDelivered;
                     committedDelivered += metrics.plannedDelivered; 
-
-                    // var cache = timeboxGroups[i][j].get(this.getHistorcalCacheField()) || {};
-                    // if (!_.isObject(cache)){
-                    //     try { cache = JSON.parse(cache) || {}; } catch (ex){ cache = {}; }
-                    // }
-                    // cache = cache || {};
-                    // if (cache.countAdded && cache.countAdded.length > 0){
-                    //     var plannedIndexAdded = Math.min(planningWindow+1,cache.countAdded.length);
-                    //     committed += cache.countAdded.slice(0,plannedIndexAdded).reduce(function(a,c){return a+c; });
-                    //     if (cache.countAdded.length > plannedIndexAdded+1){
-                    //         unplanned += cache.countAdded.slice(plannedIndexAdded).reduce(function(a,c){return a+c; });
-                    //     }
-                    // }
-                    // if (cache.countDeliveredByAdded && cache.countDeliveredByAdded.length > 0){
-                    //     var plannedIndexDelivered =Math.min(planningWindow+1,cache.countDeliveredByAdded.length);
-                    //     committedDelivered += cache.countDeliveredByAdded.slice(0,plannedIndexDelivered).reduce(function(a,c){return a+c; });
-                    //     if (cache.countDeliveredByAdded.length > plannedIndexDelivered+1){
-                    //         unplannedDelivered += cache.countDeliveredByAdded.slice(plannedIndexDelivered).reduce(function(a,c){return a+c; });
-                    //     }
-                    // }
                 } //end for timeboxGroups[i].length 
                 chartData.series[0].data.push(unplanned);
                 chartData.series[1].data.push(committed);
@@ -461,107 +410,6 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
 
         return chartData;
     },
-    // _buildChartConfig_orig: function() {
-    //     // Get the last N timeboxes
-    //     return this.getTimeboxes().then({
-    //         scope: this,
-    //         success: function(timeboxGroups) {
-    //             var promises = _.map(timeboxGroups, function(timeboxGroup) {
-    //                 var timebox = timeboxGroup[0]; // Representative timebox for the group
-    //                 var planningWindowEndIso = Ext.Date.add(timebox.get(this.timeboxStartDateField), Ext.Date.DAY, this.getSetting('planningWindow')).toISOString();
-    //                 var timeboxEndIso = timebox.get(this.timeboxEndDateField).toISOString();
-    //                 var timeboxStartIso = timebox.get(this.timeboxStartDateField).toISOString();
-    //                 var snapshotByOid = {}
-    //                 return this.getSnapshotsFromTimeboxGroup(timeboxGroup).then({
-    //                     scope: this,
-    //                     success: function(snapshots) {
-    //                         if (!snapshots || snapshots.length == 0) {
-    //                             return {
-    //                                 timebox: timebox,
-    //                                 artifactStore: null
-    //                             }
-    //                         }
-    //                         else {
-    //                             var oidQueries = [];
-    //                             _.each(snapshots, function(snapshot) {
-    //                                 var oid = snapshot.get('ObjectID');
-    //                                 oidQueries.push({
-    //                                     property: 'ObjectID',
-    //                                     value: oid
-    //                                 });
-    //                                 snapshotByOid[oid] = snapshot;
-    //                             }, this);
-
-    //                             // We can't get other data like accepted date
-    //                             // as part of the planned/unplanned lookback query because then we'd have
-    //                             // to compress potentially many snapshots on the client side.
-    //                             var filters = Rally.data.wsapi.Filter.or(oidQueries);
-
-    //                             var advancedFilters = this.getFiltersFromButton();
-    //                             if (advancedFilters) {
-    //                                 filters = filters.and(advancedFilters);
-    //                                 this.advancedFiltersString = advancedFilters.toString();
-    //                             }
-    //                             else {
-    //                                 this.advancedFiltersString = '';
-    //                             }
-
-    //                             var artifactStore = Ext.create('Rally.data.wsapi.Store', {
-    //                                 model: this.modelName,
-    //                                 fetch: this.getFieldsFromButton(),
-    //                                 autoLoad: false,
-    //                                 enablePostGet: true,
-    //                                 filters: filters
-    //                             });
-    //                             return artifactStore.load().then({
-    //                                 scope: this,
-    //                                 success: function(artifacts) {
-    //                                     // Augment each artifact with Planned, Delivered and timebox Added Date
-    //                                     _.each(artifacts, function(artifact) {
-    //                                         var snapshot = snapshotByOid[artifact.get('ObjectID')];
-    //                                         var validFrom = snapshot.get('_ValidFrom')
-    //                                         if (validFrom <= planningWindowEndIso) {
-    //                                             artifact.set('Planned', true);
-    //                                         }
-    //                                         var acceptedDate = artifact.get(this.acceptedDateField);
-    //                                         if (acceptedDate) {
-    //                                             var acceptedIso = acceptedDate.toISOString();
-    //                                             if (acceptedIso <= timeboxEndIso) {
-    //                                                 artifact.set('Delivered', true);
-    //                                             }
-    //                                             // Special case where artifact may be assigned to timeboxes that occur after
-    //                                             // its accepted date. We may want to render these differently so they don't
-    //                                             // show up as 'Delivered' in multiple timeboxes.
-    //                                             if (acceptedIso < timeboxStartIso) {
-    //                                                 artifact.set('AcceptedBeforeTimeboxStart', true);
-    //                                             }
-    //                                         }
-    //                                         artifact.set('timeboxAddedDate', new Date(validFrom));
-    //                                         artifact.set('timeboxName', timebox.get('Name'));
-    //                                         artifact.set('timeboxStartDate', timebox.get(this.timeboxStartDateField));
-    //                                         artifact.set('timeboxEndDate', timebox.get(this.timeboxEndDateField))
-    //                                     }, this);
-    //                                     return {
-    //                                         timebox: timebox,
-    //                                         artifactStore: artifactStore
-    //                                     }
-    //                                 }
-    //                             });
-    //                         }
-    //                     }
-    //                 })
-    //             }, this);
-    //             return Deft.Promise.all(promises)
-    //         }
-    //     }).then({
-    //         scope: this,
-    //         success: function(data) {
-    //             this.data = data;
-    //             return this.getChartConfig(this.data);
-    //         }
-    //     });
-    // },
-
     getChartConfig: function(data) {
         var sortedData = _.sortBy(data, function(datum) {
             return datum.timebox.get(this.timeboxStartDateField).toISOString();
@@ -739,12 +587,6 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         }).load().then({
             scope: this,
             success: this.fetchTimeboxes
-        // }).then({
-        //     scope: this,
-        //     success: this.fetchTimeboxes
-        // }).then({
-        //     scope: this,
-        //     success: this.buildHistoricalCache
         });
     },
     buildHistoricalCache: function(timeboxes) {
@@ -753,19 +595,12 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         dataContext.includePermissions = false; 
         this.timeboxes = timeboxes; 
         return Ext.create('TimeboxHistoricalCacheFactory',{
-            //timeboxes: timeboxes,
             timeboxType: this.getSetting('timeboxType'),
             dataContext: dataContext,
-           // historicalCacheField: this.getHistorcalCacheField(),
-            timeboxStartDateField: 'StartDate',
-            timeboxEndDateField: 'EndDate',
             saveCacheToTimebox: this.getSaveCacheToTimebox(),
-           // appId: this.getAppId(),
+            deliveredDateField: this.getDeliveredDateField(),
             modelNames: ['HierarchicalRequirement']
         }).build(timeboxes);
-        // return _.groupBy(timeboxes, function(timebox) {
-        //     return timebox.get('Name');
-        // });
     },
     getSaveCacheToTimebox: function(){
         return this.getSetting('saveCacheToTimebox') === true || this.getSetting('saveCacheToTimebox') === "true" || false;
@@ -773,37 +608,6 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     getHistorcalCacheField: function(){
         return this.getSetting('historicalCacheField');
     },
-    // fetchTimeboxes_orig: function(timeboxFilter) {
-    //     var deferred = Ext.create('Deft.Deferred');
-    //     if (timeboxFilter) {
-    //         // return TimeboxCacheModelBuilder.build(this.timeboxType,this.timeboxType + "Extended",this.getHistorcalCacheField()).then({
-    //         //     scope: this,
-    //         //     success: function(model){
-    //             this.setLoading("Loading Timeboxes...");    
-    //             Ext.create('Rally.data.wsapi.Store', {
-    //                     model: this.timeboxType,
-    //                     autoLoad: false,
-    //                     pageSize: 2000,
-    //                     limit: Infinity,
-    //                     fetch: ['ObjectID', this.timeboxStartDateField, this.timeboxEndDateField, 'Name',this.getHistorcalCacheField(),'Project'],
-    //                     enablePostGet: true,
-    //                     sorters: [{
-    //                         property: this.timeboxEndDateField,
-    //                         direction: 'DESC'
-    //                     }],
-    //                     filters: [timeboxFilter]
-    //                 }).load({callback: function(records,operation){
-    //                     this.setLoading(false);
-    //                     deferred.resolve(records);
-    //                 }, scope: this });
-    //         //     }
-    //         // });
-    //     }
-    //     else {
-    //         deferred.resolve([]);
-    //     }
-    //     return deferred.promise;
-    // },
     fetchTimeboxes: function(timeboxes, operation){
         var deferred = Ext.create('Deft.Deferred');
 
@@ -862,10 +666,6 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             }, {
                 property: this.timeboxEndDateField,
                 value: timebox.get(this.timeboxEndDateField)
-            // },{
-            //     property: 'WorkProducts.ObjectID',
-            //     operator: ">",
-            //     value: 0
             }]);
         }, this);
         if (timeboxFilter.length) {
@@ -875,54 +675,6 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             return null;
         }
     },
-    // getSnapshotsFromTimeboxGroup: function(timeboxGroup) {
-    //     var timebox = timeboxGroup[0]; // Representative timebox for the group
-    //     var timeboxOids = _.map(timeboxGroup, function(timebox) {
-    //         return timebox.get('ObjectID');
-    //     });
-    //     var timeboxEndIso = timebox.get(this.timeboxEndDateField).toISOString();
-    //     var planningWindowEndIso = Ext.Date.add(timebox.get(this.timeboxStartDateField), Ext.Date.DAY, this.getSetting('planningWindow')).toISOString();
-    //     var dateFilter = Rally.data.lookback.QueryFilter.and([{
-    //             property: '_ValidFrom',
-    //             operator: '<=',
-    //             value: timeboxEndIso
-    //         },
-    //         {
-    //             property: '_ValidTo',
-    //             operator: '>=',
-    //             value: planningWindowEndIso
-    //         }
-    //     ]);
-    //     var dataContext = this.getContext().getDataContext();
-
-    //     var filters = [{
-    //             property: '_TypeHierarchy',
-    //             value: this.modelName
-    //         },
-    //         {
-    //             property: this.timeboxType,
-    //             operator: 'in',
-    //             value: timeboxOids
-    //         },
-    //         {
-    //             property: '_ProjectHierarchy',
-    //             value: Rally.util.Ref.getOidFromRef(dataContext.project)
-    //         },
-    //         dateFilter
-    //     ];
-
-    //     var store = Ext.create('Rally.data.lookback.SnapshotStore', {
-    //         autoLoad: false,
-    //         context: dataContext,
-    //         fetch: [this.timeboxType, '_ValidFrom', '_ValidTo', 'ObjectID'],
-    //         hydrate: [this.timeboxType],
-    //         remoteSort: false,
-    //         compress: true,
-    //         enablePostGet: true, // TODO (tj) verify POST is used
-    //         filters: filters,
-    //     });
-    //     return store.load();
-    // },
     _addChart: function(chartConfig){
         console.log('_addChart',chartConfig);
         var chartArea = this.down('#grid-area')
@@ -930,30 +682,6 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
 
         chartArea.add(chartConfig);
     },
-    // _addGridboard: function(chartConfig) {
-    //     var gridArea = this.down('#grid-area')
-    //     gridArea.removeAll();
-
-    //     var filters = [];
-    //     var timeboxScope = this.getContext().getTimeboxScope();
-    //     if (timeboxScope && timeboxScope.isApplicable(this.modelName)) {
-    //         filters.push(timeboxScope.getQueryFilter());
-    //     }
-
-    //     var context = this.getContext();
-    //     this.gridboard = gridArea.add({
-    //         xtype: 'rallygridboard',
-    //         context: context,
-    //         modelNames: [this.modelName],
-    //         toggleState: 'chart',
-    //         height: gridArea.getHeight() - Constants.APP_RESERVED_HEIGHT,
-    //         chartConfig: chartConfig,
-    //         listeners: {
-    //             scope: this,
-    //             viewchange: this.viewChange,
-    //         }
-    //     });
-    // },
     getChartTitle: function(){
         return this.getSetting('artifactType');
     },
@@ -963,7 +691,6 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             return true; 
         }
         return false; 
-        //return this.modelName == this.lowestPiType.get('TypePath');
     },
     viewChange: function() {
         this.setLoading(true);
@@ -1043,27 +770,6 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             chartData: chartData 
         }
     },
-    // viewChange_orig: function() {
-    //     this.setLoading(true);
-    //     // Add the other filter, config and export controls
-    //     this.addControls().then({
-    //         scope: this,
-    //         success: this.getTimeboxes
-    //     }).then({
-    //         scope: this,
-    //         success: this.buildHistoricalCache
-    //     }).then({
-    //         scope: this,
-    //         success: function(timeboxGroups) {
-    //             this.timeboxGroups = timeboxGroups;
-    //             this._rebuildChart(timeboxGroups);
-    //             this._addChart(chartConfig);
-    //             //this._addGridboard(chartConfig);
-    //             this.setLoading(false);
-    //         }
-    //     });
-    // },
-
     onSettingsClose: function() {
         // Don't redraw the app unless something has changed
         if (this.settingsChanged) {
@@ -1080,167 +786,6 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     getModelScopedStateId: function(modelName, id) {
         return this.getContext().getScopedStateId(modelName + '-' + id);
     },
-
-    // getSettingsFields: function() {
-    //     console.log('getConfigItems');
-    //     var settings = this.getSettings();
-    //     var timeboxTypeStore = Ext.create('Ext.data.Store', {
-    //         fields: ['name', 'value'],
-    //         data: [
-    //             { name: Constants.TIMEBOX_TYPE_ITERATION_LABEL, value: Constants.TIMEBOX_TYPE_ITERATION },
-    //             { name: Constants.TIMEBOX_TYPE_RELEASE_LABEL, value: Constants.TIMEBOX_TYPE_RELEASE },
-    //         ]
-    //     });
-    //     var typeStoreData = [
-    //         { name: 'User Story', value: 'HierarchicalRequirement' },
-    //     ];
-    //     // Called from getSettingsFields which is invoked before launch sets up the lowestPiType. Handle
-    //     // this case.
-    //     if (this.lowestPiType) {
-    //         typeStoreData.push({ name: this.lowestPiType.get('Name'), value: this.lowestPiType.get('TypePath') })
-    //     }
-    //     var artifactTypeStore = Ext.create('Ext.data.Store', {
-    //         fields: ['name', 'value'],
-    //         data: typeStoreData
-    //     });
-    //     var timeboxType = settings.timeboxType;
-    //     return [{
-    //             xtype: 'combobox',
-    //             name: 'artifactType',
-    //             //value: settings.artifactType,
-    //             fieldLabel: 'Artifact type',
-    //             labelWidth: 150,
-    //             store: artifactTypeStore,
-    //             queryMode: 'local',
-    //             displayField: 'name',
-    //             valueField: 'value',
-    //             listeners: {
-    //                 scope: this,
-    //                 change: function(field, newValue, oldValue) {
-    //                     if (newValue != oldValue) {
-    //                         // this.updateSettingsValues({
-    //                         //     settings: {
-    //                         //         artifactType: newValue
-    //                         //     }
-    //                         // });
-    //                         // // Choice of artifact has changed
-    //                         // this.setModelFieldsForType(newValue);
-    //                         // If Feature, also update timebox type to 'Release'
-    //                         var timeboxTypeControl = Ext.ComponentManager.get('timeboxType');
-    //                         if (this.isPiTypeSelected()) {
-    //                             timeboxTypeControl.setValue(Constants.TIMEBOX_TYPE_RELEASE);
-    //                             timeboxTypeControl.disable(); // User cannot pick other timeboxes for Features
-    //                         }
-    //                         else {
-    //                             timeboxTypeControl.enable();
-    //                         }
-    //                     }
-    //                 }
-    //             }
-    //         },
-    //         {
-    //             xtype: 'combobox',
-    //             name: 'timeboxType',
-    //             id: 'timeboxType',
-    //             value: this.getSetting('timeboxType'),
-    //             fieldLabel: 'Timebox type',
-    //             labelWidth: 150,
-    //             store: timeboxTypeStore,
-    //             queryMode: 'local',
-    //             displayField: 'name',
-    //             valueField: 'value',
-    //             disabled: this.isPiTypeSelected(),
-    //             // listeners: {
-    //             //     scope: this,
-    //             //     change: function(field, newValue, oldValue) {
-    //             //         if (newValue != oldValue) {
-    //             //             this.updateSettingsValues({
-    //             //                 settings: {
-    //             //                     timeboxType: newValue
-    //             //                 }
-    //             //             });
-    //             //             // Choice of timebox has changed
-    //             //             this.setTimeboxFieldsForType(newValue);
-    //             //         }
-    //             //     }
-    //             // }
-    //         },
-    //         {
-    //             xtype: 'rallynumberfield',
-    //             name: 'timeboxCount',
-    //             value: this.getSetting('timeboxCount'),
-    //             fieldLabel: "Timebox Count",
-    //             labelWidth: 150,
-    //             minValue: 1,
-    //             allowDecimals: false,
-    //             // listeners: {
-    //             //     scope: this,
-    //             //     change: function(field, newValue, oldValue) {
-    //             //         if (newValue != oldValue) {
-    //             //             this.updateSettingsValues({
-    //             //                 settings: {
-    //             //                     timeboxCount: newValue
-    //             //                 }
-    //             //             });
-    //             //         }
-    //             //     }
-    //             // }
-    //         }, {
-    //             xtype: 'rallynumberfield',
-    //             name: 'planningWindow',
-    //             value: this.getSetting('planningWindow'),
-    //             fieldLabel: 'Timebox planning window (days)',
-    //             labelWidth: 150,
-    //             minValue: 0,
-    //             allowDecimals: false,
-    //             // listeners: {
-    //             //     scope: this,
-    //             //     change: function(field, newValue, oldValue) {
-    //             //         if (newValue != oldValue) {
-    //             //             this.updateSettingsValues({
-    //             //                 settings: {
-    //             //                     planningWindow: newValue
-    //             //                 }
-    //             //             });
-    //             //         }
-    //             //     }
-    //             // }
-    //         }, {
-    //             xtype: 'rallycheckboxfield',
-    //             name: 'currentTimebox',
-    //             value: this.getSetting('currentTimebox'),
-    //             fieldLabel: 'Show current, in-progress timebox',
-    //             labelWidth: 150,
-    //             // listeners: {
-    //             //     scope: this,
-    //             //     change: function(field, newValue, oldValue) {
-    //             //         if (newValue != oldValue) {
-    //             //             this.updateSettingsValues({
-    //             //                 settings: {
-    //             //                     currentTimebox: newValue
-    //             //                 }
-    //             //             });
-    //             //         }
-    //             //     }
-    //             // }
-    //         },{
-    //             xtype: 'rallyfieldcombobox',
-    //             name: 'historicalCacheField',
-    //             fieldLabel: 'Historical Cache Field',
-    //             model: timeboxType,
-    //             labelWidth: 150,
-    //             _isNotHidden: function(field) {
-    //                 if (field.hidden){
-    //                     if (field && field.attributeDefinition && field.attributeDefinition.AttributeType.toLowerCase() === "text"){
-                        
-    //                         return true; 
-    //                     }
-    //                 }
-    //                 return false;
-    //             }
-    //         }
-    //     ]
-    // },
     getSettingsFields: function(){
         console.log('getConfigItems');
         var artifactComboFilters = Rally.data.wsapi.Filter.and([{
