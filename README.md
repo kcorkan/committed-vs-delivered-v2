@@ -19,6 +19,8 @@ If the item was accepted and deleted before the sprint ends, it will not be show
 
 If something is added to the sprint and removed before the planning window, it will show as committed.  
 
+If there are more than 300 items in a timebox in a project, then the cache will not save an will always need to be recalculated 
+
 ## Todo
 - validation of numbers/differences 
 - additional optimization changes
