@@ -65,13 +65,13 @@ Ext.define('TimeboxCacheMixin',{
             try {
                 cache = JSON.parse(cache);
             } catch(ex){
-                cache = null
+                cache = {}
             }
         }
         if (cache && cache.checksum === this.getChecksum()){
             return cache; 
         }
-        return null;
+        return {};
     },
     getPlannedDeliveredMetrics: function(planningWindowShiftInDays){
          var metrics = {
@@ -86,6 +86,8 @@ Ext.define('TimeboxCacheMixin',{
             startDateMs = this.getStartDateMs(),
             endDateMs = this.getEndDateMs(),
             planningDateMs = startDateMs + 86400000 * planningWindowShiftInDays;  
+        console.log('cache',cache)
+        console.log('cache ', this.historicalCacheField)
 
         _.each(cache.data, function(dataArray, oid){
             if (this.isDataPlanned(dataArray, planningDateMs)){
