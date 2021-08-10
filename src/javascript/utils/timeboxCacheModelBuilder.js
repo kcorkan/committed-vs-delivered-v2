@@ -120,11 +120,10 @@ Ext.define('TimeboxCacheModelBuilder',{
                         //NOTE: todo -- If the length of the cached data is > limit, we cannot save it to cache and it will always need to be
                         //reloaded
                         console.log('buildCacheFromSnaps',this.historicalCacheField);
-                        this.set(this.historicalCacheField,cache);
+                        this.set(this.historicalCacheField,JSON.stringify(cache));
                     },
                     getCacheObject: function(){
                         var cache = this.get(this.historicalCacheField) || null;
-                        console.log('getCacheObject',cache);
                         if (typeof cache !== 'object' && cache !== null){
                             try {
                                 cache = JSON.parse(cache);
