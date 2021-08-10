@@ -41,7 +41,8 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             historicalCacheField: null,
             timeboxStartDateField: 'StartDate',
             timeboxEndDateField: 'EndDate',
-            saveCacheToTimebox: true 
+            saveCacheToTimebox: true,
+            excludeAcceptedBeforeStart: false
         }
     },
 
@@ -70,7 +71,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         
         var promises = [
             this.isProjectHighLevel(),
-            TimeboxCacheModelBuilder.build(this.getTimeboxType(),this.getTimeboxType() + "_x",this.getHistorcalCacheField(),this.timeboxStartDateField, this.timeboxEndDateField)
+            TimeboxCacheModelBuilder.build(this.getTimeboxType(),this.getTimeboxType() + "_x",this.getHistorcalCacheField(),this.timeboxStartDateField, this.timeboxEndDateField, this.getExcludeAcceptedBeforeStart())
         ];
 
         Deft.Promise.all(promises).then({
@@ -84,6 +85,9 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                 this._showError(msg);
             }
         });
+    },
+    getExcludeAcceptedBeforeStart: function(){
+        return this.getSetting('excludeAcceptedBeforeStart') == "true" || this.getSetting('excludeAcceptedBeforeStart') === true;
     },
     getTimeboxType: function(){
         return this.getSetting('timeboxType');
@@ -849,6 +853,11 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             xtype: 'rallycheckboxfield',
             name: 'currentTimebox',
             fieldLabel: 'Show current, in-progress timebox',
+            labelWidth: 150
+        },{
+            xtype: 'rallycheckboxfield',
+            name: 'excludeAcceptedBeforeStart',
+            fieldLabel: 'Exclude Work Items accepted before the Iteration',
             labelWidth: 150
         },{
             xtype: 'rallycheckboxfield',

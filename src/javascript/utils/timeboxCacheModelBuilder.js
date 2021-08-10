@@ -57,10 +57,12 @@ Ext.define('TimeboxCacheMixin',{
 
         //NOTE: todo -- If the length of the cached data is > limit, we cannot save it to cache and it will always need to be
         //reloaded
+        console.log('buildCacheFromSnaps',this.historicalCacheField);
         this.set(this.historicalCacheField,cache);
     },
     getCacheObject: function(){
         var cache = this.get(this.historicalCacheField) || null;
+        console.log('getCacheObject',cache);
         if (typeof cache !== 'object' && cache !== null){
             try {
                 cache = JSON.parse(cache);
@@ -86,26 +88,28 @@ Ext.define('TimeboxCacheMixin',{
             startDateMs = this.getStartDateMs(),
             endDateMs = this.getEndDateMs(),
             planningDateMs = startDateMs + 86400000 * planningWindowShiftInDays;  
-        console.log('cache',cache)
-        console.log('cache ', this.historicalCacheField)
 
         _.each(cache.data, function(dataArray, oid){
-            if (this.isDataPlanned(dataArray, planningDateMs)){
+            
+            var skip = false;
+            console.log("getPlannedDeliveredMetrics: Accepted before iteration", this.excludeAcceptedBeforeStart,dataArray[TimeboxCacheModelBuilder.DELIVERED_IDX], startDateMs)
+            console.log('is before iteration ', dataArray[TimeboxCacheModelBuilder.DELIVERED_IDX] < startDateMs);
+            if (dataArray[TimeboxCacheModelBuilder.DELIVERED_IDX] < startDateMs && this.excludeAcceptedBeforeStart){
+                skip = true 
+            }
+
+            if (!skip && this.isDataPlanned(dataArray, planningDateMs)){
                 metrics.planned++;
                 if (this.isDataDelivered(dataArray,endDateMs)){
                     metrics.plannedDelivered++;
                 }
             }
-            if (this.isDataUnplanned(dataArray,planningDateMs)){
+            if (!skip && this.isDataUnplanned(dataArray,planningDateMs)){
                 metrics.unplanned++;
                 if (this.isDataDelivered(dataArray,endDateMs)){
                     metrics.unplannedDelivered++;
                 }
-            }
-            
-            // if (dataArray[this.DELIVERED_IDX] < startDateMs){
-            //     metrics.acceptedBeforeStart++;
-            // }
+            }        
         }, this);
          return metrics; 
     },
@@ -179,7 +183,7 @@ Ext.define('TimeboxCacheModelBuilder',{
             PlanningDate: "Planning Date Cutoff"
         };
     },
-    build: function(modelType,newModelName,historicalCacheFieldName,timeboxStartDateField,timeboxEndDateField) {
+    build: function(modelType,newModelName,historicalCacheFieldName,timeboxStartDateField,timeboxEndDateField,excludeAcceptedBeforeStart) {
         var deferred = Ext.create('Deft.Deferred');
         console.log('before model built', newModelName,historicalCacheFieldName,timeboxStartDateField,timeboxEndDateField);
         Rally.data.ModelFactory.getModel({
@@ -200,7 +204,7 @@ Ext.define('TimeboxCacheModelBuilder',{
                 var new_model = Ext.define(newModelName, {
                     extend: model,
                     mixins: ['TimeboxCacheMixin'],
-                    
+                    excludeAcceptedBeforeStart: excludeAcceptedBeforeStart,
                     timeboxStartDateField: timeboxStartDateField,
                     timeboxEndDateField: timeboxEndDateField,
                     historicalCacheField: historicalCacheFieldName,
