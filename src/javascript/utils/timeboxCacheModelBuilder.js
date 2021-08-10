@@ -7,7 +7,7 @@ Ext.define('TimeboxCacheMixin',{
 Ext.define('TimeboxCacheModelBuilder',{
     singleton: true,
     
-    CACHE_VERSION: 2,
+    CACHE_VERSION: 3,
                     
     //Cache Indexes 
     VALID_FROM_IDX: 0,
