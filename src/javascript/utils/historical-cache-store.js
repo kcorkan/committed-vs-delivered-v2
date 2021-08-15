@@ -103,9 +103,12 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                     timeboxOid = timebox.get('ObjectID');
                 if (snapshotsByTimeboxOid[timeboxOid]){
                     timebox.buildCacheFromSnaps(snapshotsByTimeboxOid[timeboxOid],this.deliveredDateField,this.pointsField);
-                    timebox.save({callback: function(record,operation){
-                        console.log('save',operation.wasSuccessful());
-                    }});
+                    if (this.saveCacheToTimebox === true){
+                        timebox.save({callback: function(record,operation){
+                            console.log('save',operation.wasSuccessful());
+                        }});
+                    }
+                    
                 }
             }
             //this.saveHistoricalCacheToTimebox(updatedTimeboxes);
