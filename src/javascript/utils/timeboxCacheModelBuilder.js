@@ -103,7 +103,7 @@ Ext.define('TimeboxCacheModelBuilder',{
                                 checksum: checksum,
                                 data: {}
                             };
-                        console.log('buildCacheFromSnaps',JSON.stringify(snapsArraysByOid))
+                        console.log('buildCacheFromSnaps',JSON.stringify(snapArraysByOid))
                         console.log('buildCacheFromSnaps',deliveredDateField)
                         console.log('buildCacheFromSnaps',pointsField)
                         console.log('buildCacheFromSnaps',this.get('Project').Name);
