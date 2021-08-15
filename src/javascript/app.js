@@ -167,27 +167,44 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     },
     clearCache: function(){
         var timeboxes = this.timeboxes; 
-        
+        var count =0,
+            success = 0, 
+            total = timeboxes.length;
+        this.setLoading("Clearing Timebox cache...");
         for (var i=0; i<timeboxes.length; i++){
             timeboxes[i].clearCache();
-        }
-        this.setLoading("Clearing timebox cache...")
-        if (timeboxes.length > 0 && this.getSaveCacheToTimebox()){
-            var store = Ext.create('Rally.data.wsapi.batch.Store', {
-                data: timeboxes
-            });
-            store.sync({
-                success: function() {
-                    Rally.ui.notify.Notifier.show({message: Ext.String.format("{0} timebox records updated successfully.",timeboxes.length)});
-                    this.setLoading(false);
-                },
-                failure: function(){
-                    this._showError("timeboxRecords update failed with error.");
-                    this.setLoading(false);
+            timeboxes[i].save({
+                callback: function(record,operation){
+                    count++;
+                    if (operation.wasSuccessful()){
+                        success++; 
+                        this.setLoading(Ext.String.format("Saving {0}/{1} timeboxes...",success,total));
+                    }
+                    if (count >= total){
+                        this.setLoading(false);
+                        Rally.notify.Notifier.show({message: Ext.String.format("{0}/{1} timeboxes cleared.",success,total)})
+                    }
                 },
                 scope: this 
-            });
+            })
         }
+        // this.setLoading("Clearing timebox cache...")
+        // if (timeboxes.length > 0 && this.getSaveCacheToTimebox()){
+        //     var store = Ext.create('Rally.data.wsapi.batch.Store', {
+        //         data: timeboxes
+        //     });
+        //     store.sync({
+        //         success: function(batch,options) {
+        //             Rally.ui.notify.Notifier.show({message: Ext.String.format("{0} timebox records updated successfully.",timeboxes.length)});
+        //             this.setLoading(false);
+        //         },
+        //         failure: function(batch,options){
+        //             this._showError("timeboxRecords update failed with error.");
+        //             this.setLoading(false);
+        //         },
+        //         scope: this 
+        //     });
+        // }
     },
     getShowClearCache: function(){
         if (this.getSaveCacheToTimebox() ){
