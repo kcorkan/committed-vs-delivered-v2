@@ -112,10 +112,11 @@ Ext.define('TimeboxHistoricalCacheFactory', {
         },
         getTimeboxOidsWithInvalidCache: function(timeboxGroup){
             var currentTimebox = timeboxGroup[0].getEndDateMs() > Date.now();
-
+            console.log('getTimeboxOidsWithInvalidCache',timeboxGroup);
             //Only get snapshots for timeboxes that don't have an upto date cache 
             var invalidOids = _.reduce(timeboxGroup, function(oids, timebox) {
                 var tbOid = timebox.get('ObjectID');
+                console.log('isCacheValid',timebox.get('Name'),timebox.get('Project').Name);
                 if (!timebox.isCacheValid() || currentTimebox){
                     oids.push(tbOid);
                 }
