@@ -100,10 +100,6 @@ Ext.define('TimeboxCacheModelBuilder',{
                     },
                     isCacheValid: function(){
                         var cache = this.getCacheObject();
-                        console.log('isCacheValid',JSON.stringify(cache));
-                        console.log('isCacheValid checksum',cache && cache.checksum,this.getChecksum());
-                        console.log('isCacheValid',this.get('Project').Name);
-                        
                         return cache && cache.checksum === this.getChecksum() || false;
                     },
                     buildCacheFromSnaps: function(snapArraysByOid,deliveredDateField,pointsField){
@@ -112,11 +108,6 @@ Ext.define('TimeboxCacheModelBuilder',{
                                 checksum: checksum,
                                 data: {}
                             };
-                        console.log('buildCacheFromSnaps',JSON.stringify(snapArraysByOid))
-                        console.log('buildCacheFromSnaps',deliveredDateField)
-                        console.log('buildCacheFromSnaps',pointsField)
-                        console.log('buildCacheFromSnaps',this.get('Project').Name);
-                        console.log('buildCacheFromSnaps',this.get('Name'));
                         _.each(snapArraysByOid, function(snapArray,snapOid){
                             var snaps = _.sortBy(snapArray, ["_ValidFrom"]);
                             var firstDayInRange = snaps[0]._ValidFrom,
@@ -141,7 +132,7 @@ Ext.define('TimeboxCacheModelBuilder',{
                         //NOTE: todo -- If the length of the cached data is > limit, we cannot save it to cache and it will always need to be
                         //reloaded
                         var stringValue = JSON.stringify(cache);
-                        console.log('buildCacheFromSnaps length',stringValue && stringValue.length);
+                       // console.log('buildCacheFromSnaps length',stringValue && stringValue.length);
                         this.set(this.historicalCacheField,cache);
                     },
                     getCacheObject: function(){
@@ -150,7 +141,7 @@ Ext.define('TimeboxCacheModelBuilder',{
                     loadCache: function(cacheField){
                         var cache = null;
                         if (cacheField){
-                            console.log('loadCache', this.get(cacheField))
+                           // console.log('loadCache', this.get(cacheField))
                             var savedCache = this.get(cacheField) || "";
                             if (savedCache.length > 0){
                                 
@@ -166,7 +157,7 @@ Ext.define('TimeboxCacheModelBuilder',{
                                 }
                             }
                         }
-                        console.log('loadCache',cache);
+                       // console.log('loadCache',cache);
                         return cache; 
                     },
                     persistCache: function(cacheField){

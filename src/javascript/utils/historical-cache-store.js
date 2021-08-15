@@ -79,7 +79,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
         },
         processSnapshots: function(snapshots, timeboxGroup){
             var snapshotsByTimeboxOid = {};
-            console.log('processSnapshots', snapshots);
+        //    console.log('processSnapshots', snapshots);
             if (snapshots.length > 0) {
                 
                 for (var i=0; i<snapshots.length; i++){
@@ -96,14 +96,13 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                     snapshotsByTimeboxOid[timeboxOid][snap_oid].push(snapshot);
                 }
             }
-            console.log('processSnapshots', snapshotsByTimeboxOid);
+            //console.log('processSnapshots', snapshotsByTimeboxOid);
             var updatedTimeboxes = [];
             for (var i=0; i<timeboxGroup.length; i++){
                 var timebox = timeboxGroup[i],
                     timeboxOid = timebox.get('ObjectID');
                 if (snapshotsByTimeboxOid[timeboxOid]){
                     timebox.buildCacheFromSnaps(snapshotsByTimeboxOid[timeboxOid],this.deliveredDateField,this.pointsField);
-                    console.log('this.Save',this.saveCacheToTimebox)
                     if (this.saveCacheToTimebox === true){
                         if (timebox.persistCache(this.persistedCacheField)){
                             timebox.save({
@@ -127,7 +126,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
         getTimeboxOidsWithInvalidCache: function(timeboxGroup){
             var currentTimebox = timeboxGroup[0].getEndDateMs() > Date.now();
             var persistedCacheField = this.persistedCacheField;
-            console.log('getTimeboxOidsWithInvalidCache',timeboxGroup);
+           // console.log('getTimeboxOidsWithInvalidCache',timeboxGroup);
             //Only get snapshots for timeboxes that don't have an upto date cache 
             var invalidOids = _.reduce(timeboxGroup, function(oids, timebox) {
                 var tbOid = timebox.get('ObjectID');
@@ -135,9 +134,9 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                     oids.push(tbOid);
                 } else {
                     var persistedCache = timebox.loadCache(persistedCacheField);
-                    console.log('getTimeboxOidsWithInvalidCache',persistedCache)
+                    //('getTimeboxOidsWithInvalidCache',persistedCache)
                     if (!persistedCache || _.isEmpty(persistedCache)){
-                        console.log('getTimeboxOidsWithInvalidCache',persistedCache)
+                      //  console.log('getTimeboxOidsWithInvalidCache',persistedCache)
                         oids.push(tbOid);
                     }
 
@@ -147,7 +146,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                 // }
                 return oids; 
             },[],this);
-            console.log('getTimeboxOidsWithInvalidCache',invalidOids)
+           // console.log('getTimeboxOidsWithInvalidCache',invalidOids)
             return invalidOids;
         },
         buildTimeboxFilter: function(timeboxGroup){
@@ -216,16 +215,13 @@ Ext.define('TimeboxHistoricalCacheFactory', {
         },
        
         saveHistoricalCacheToTimebox: function(updatedTimeboxRecords){
-            console.log('saveHistoricalCacheToTimebox',updatedTimeboxRecords);
             if (this.saveCacheToTimebox === true){
                 if (updatedTimeboxRecords.length > 0){
-                    console.log('updatedTimeboxRecords', updatedTimeboxRecords[0].get(this.persistedCacheField));
                     var store = Ext.create('Rally.data.wsapi.batch.Store', {
                         data: updatedTimeboxRecords
                     });
                     store.sync({
                         success: function(batch,options) {
-                            console.log('saveHistoricalCacheToTimebox batch', batch,options);
                             if (batch.exceptions && batch.exceptions.length > 0){
                                 console.log("saveHistoricalCacheToTimebox EXCEPTIONS: ",batch.exceptions);
                             }

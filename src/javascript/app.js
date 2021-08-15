@@ -189,25 +189,6 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                 })
             }
         }
-        
-        // if (timeboxes.length > 0 && this.getSaveCacheToTimebox()){
-        //     var store = Ext.create('Rally.data.wsapi.batch.Store', {
-        //         data: timeboxes
-        //     });
-        //     store.sync({
-        //         success: function(batch,options) {
-        //             console.log('bacht', batch,options);
-        //             if (batch.exceptions && batch.exceptions.length > 0){
-        //                 console.log(batch.exceptions);
-        //             }
-        //             Rally.ui.notify.Notifier.show({message: Ext.String.format("{0} timebox records cleared.",timeboxes.length)});
-        //         },
-        //         failure: function(batch,options){
-        //             this._showError("timeboxRecords update failed with error.");
-        //         },
-        //         scope: this 
-        //     });
-        // } 
     },
     getShowClearCache: function(){
         if (this.getSaveCacheToTimebox() ){
