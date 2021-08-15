@@ -4,29 +4,39 @@
 
 ![screenshot](./images/screenshot.png "This is an example")
 
-## Scenarios - Difference between the original committed v delivered
+## Updates
+This is an updated version of Committed vs Delivered.  This app has several differences from the original app, including:
+* It currently only supports Iteration timeboxes and Story artifacts.  The ability to use Portfolio Items and Releases has not been tested so that functionality has been disabled.  
+* It allows for caching of historical data in a hidden Iteration custom field.  The custom field must be a text field and must be hidden for the app to store historical cache data there.  
+* This app looks only at historical data, so if a story is moved into an out of a sprint, it will show as planned/unplanned.  There is a setting called "minDuration" that allows for excluding stories that have been added and removed and only existed in an iteration for a short amount of time (minDuration). 
+* This app does not allow for filtering of data
+* Exports are allowed when running the app at all levels.  However, detailed data about each item can only be exported if the app is running at the team level or above.  Details are not available for export at higher project levels.   
 
-Displayed Iterations
-For the currently selected project, ...
+## Inclusion of Data
 
-Artifact Moving 
-If a story is committed to a sprint and the story is accepted within the same sprint before the end date, it will be considered "Delivered" for that sprint.  
+*  If a story is committed to a sprint and the story is accepted within the same sprint before the end date, it will be considered "Delivered" for that sprint.  
+*  If that same story is moved out of the sprint into another sprint it will be marked as planned/unplanned to that sprint when it is moved into the sprint.  If it is in the Accepted within the sprint, then it will also count as delivered for that sprint.  
+**Example Scenario**:  Customer has a "CV Defect" bucket story that they add defects to within a sprint.  That may be accepted by the end of the sprint, but then it is moved into new sprint and more defects are added to it, changing it's accepted state.  
 
-If that same story is moved out of the sprint into another sprint it will be marked as committed to that sprint when it is moved into the sprint.  If it is in the Accepted within the sprint, then it will also count as delivered for that sprint.  
+*  Anything added/removed within the planning window to timebox end is counted unless it is removed within the minDuration amount of time
 
-Scenario:  Customer has a "CV Defect" bucket story that they add defects to within a sprint.  That may be accepted by the end of the sprint, but then it is moved into new sprint and more defects are added to it, changing it's accepted state.  
+*  If an item has been deleted, then it will not show up in the original app, but it will in this app 
 
-Committed v. Delivered looks at anything in the sprint at the planning window.
-If an item has been deleted, then it will not show up in the old one (but will in this one) - S205828
-If the item was accepted and deleted before the sprint ends, it will not be shown as delivered.  If it was accepted and deleted after the sprint end, it will be shown as delivered.
+*  If the item was accepted and deleted before the sprint ends, it will not be shown as delivered.  If it was accepted and deleted after the sprint end, it will be shown as delivered.
 
-If something is added to the sprint and removed before the planning window, it will show as committed.  
+* If there are more than 300 items in a timebox in a project, then the cache will not save an will always need to be recalculated 
 
-If there are more than 300 items in a timebox in a project, then the cache will not save an will always need to be recalculated 
+### Work Items Accepted BEFORE the Timebox Start Date 
+*  If **Exclude Items accepted before start date** App setting is selected, then items accepted BEFORE the start date of the Timebox will NOT be counted towards the planned/unplanned OR delivered count.  If **Exclude Items Accepted before start date** is unchecked than these items will be included in both counts.  
 
 ### Work Items Accepted after the Timebox End Date 
-Work Items accepted after the timebox end date will NOT count towards the delivered count.  
-Work Items accepted after the timebox end date WILL count towards the planned/unplanned count, depending on when they were added to the Sprint.  
+*  Work Items accepted after the timebox end date will NOT count towards the delivered count.  
+*  Work Items accepted after the timebox end date WILL count towards the planned/unplanned count, depending on when they were added to the Sprint.  
+
+### Min Duration in Hours
+If a min duration in Hours is set, then any items that exist within the timebox for less than the specified duration of time will not be counted towards planned/unplanned data nor will they count towards delivered data.  If the min duration applies to the beginning or end of the timebox/planning window, then the items will also be excluded.  
+
+For example, if **minDuration** is set to 3 hours and an item is added to the timebox 2.5 hours before the timebox ends, it will not be included in the count.  
 
 ### Export
 Export of the data that went into the calculations is available at all levels.  This data includes:
