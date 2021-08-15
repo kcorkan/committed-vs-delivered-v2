@@ -167,9 +167,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     },
     clearCache: function(){
         var timeboxes = this.timeboxes; 
-        var count =0,
-            success = 0, 
-            total = timeboxes.length;
+
         var updatedTimeboxes = [];
         for (var i=0; i<timeboxes.length; i++){
             if (timeboxes[i].clearCache()){
@@ -192,6 +190,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         }
 
         if (updatedTimeboxes.length > 0){
+            
             var store = Ext.create('Rally.data.wsapi.batch.Store', {
                 data: updatedTimeboxes
             });
