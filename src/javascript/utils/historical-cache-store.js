@@ -79,6 +79,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
         },
         processSnapshots: function(snapshots, timeboxGroup){
             var snapshotsByTimeboxOid = {};
+            console.log('processSnapshots', snapshots);
             if (snapshots.length > 0) {
                 
                 for (var i=0; i<snapshots.length; i++){
@@ -95,6 +96,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                     snapshotsByTimeboxOid[timeboxOid][snap_oid].push(snapshot);
                 }
             }
+            console.log('processSnapshots', snapshotsByTimeboxOid);
             var updatedTimeboxes = [];
             for (var i=0; i<timeboxGroup.length; i++){
                 var timebox = timeboxGroup[i],
