@@ -41,7 +41,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             historicalCacheField: null,
             timeboxStartDateField: 'StartDate',
             timeboxEndDateField: 'EndDate',
-            saveCacheToTimebox: true,
+            saveCacheToTimebox: false,
             excludeAcceptedBeforeStart: false,
             showBySumOfEstimate: true,
             minDurationInHours: 24,
@@ -831,11 +831,11 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                 valueField: 'Name',
                 disabled: !showCache, 
                 _isNotHidden: function(field) {
-                    //if (field.hidden){
+                    if (field.hidden){
                         if (field && field.attributeDefinition && field.attributeDefinition.AttributeType.toLowerCase() === "text"){
                             return true; 
                         }
-                   // }
+                   }
                     return false;
                 },
                 labelAlign: labelAlign
