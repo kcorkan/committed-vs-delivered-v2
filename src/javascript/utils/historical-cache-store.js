@@ -103,10 +103,12 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                     timeboxOid = timebox.get('ObjectID');
                 if (snapshotsByTimeboxOid[timeboxOid]){
                     timebox.buildCacheFromSnaps(snapshotsByTimeboxOid[timeboxOid],this.deliveredDateField,this.pointsField);
-                    updatedTimeboxes.push(timebox);
+                    timebox.save({callback: function(record,operation){
+                        console.log('save',operation.wasSuccessful());
+                    }});
                 }
             }
-            this.saveHistoricalCacheToTimebox(updatedTimeboxes);
+            //this.saveHistoricalCacheToTimebox(updatedTimeboxes);
         },
         getTimeboxOidsWithInvalidCache: function(timeboxGroup){
             var currentTimebox = timeboxGroup[0].getEndDateMs() > Date.now();
