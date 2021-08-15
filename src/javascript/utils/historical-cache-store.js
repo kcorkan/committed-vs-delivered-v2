@@ -103,10 +103,21 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                     timeboxOid = timebox.get('ObjectID');
                 if (snapshotsByTimeboxOid[timeboxOid]){
                     timebox.buildCacheFromSnaps(snapshotsByTimeboxOid[timeboxOid],this.deliveredDateField,this.pointsField);
+                    console.log('this.Save',this.saveCacheToTimebox)
                     if (this.saveCacheToTimebox === true){
-                        timebox.save({callback: function(record,operation){
-                            console.log('save',operation.wasSuccessful());
-                        }});
+                        if (timebox.persistCache(this.persistedCacheField)){
+                            timebox.save({
+                                callback: function(record,operation){
+                                    if (operation.wasSuccessful()){
+                                        console.log('cache saved');
+                                    } else {
+                                        console.log('save error',timebox,operation)
+                                    }
+                                    
+                                }
+                            });
+                        }
+                        //updatedTimeboxes.push(timebox);
                     }
                     
                 }
@@ -115,16 +126,28 @@ Ext.define('TimeboxHistoricalCacheFactory', {
         },
         getTimeboxOidsWithInvalidCache: function(timeboxGroup){
             var currentTimebox = timeboxGroup[0].getEndDateMs() > Date.now();
+            var persistedCacheField = this.persistedCacheField;
             console.log('getTimeboxOidsWithInvalidCache',timeboxGroup);
             //Only get snapshots for timeboxes that don't have an upto date cache 
             var invalidOids = _.reduce(timeboxGroup, function(oids, timebox) {
                 var tbOid = timebox.get('ObjectID');
-                console.log('isCacheValid',timebox.get('Name'),timebox.get('Project').Name);
-                if (!timebox.isCacheValid() || currentTimebox){
+                if (currentTimebox){
                     oids.push(tbOid);
+                } else {
+                    var persistedCache = timebox.loadCache(persistedCacheField);
+                    console.log('getTimeboxOidsWithInvalidCache',persistedCache)
+                    if (!persistedCache || _.isEmpty(persistedCache)){
+                        console.log('getTimeboxOidsWithInvalidCache',persistedCache)
+                        oids.push(tbOid);
+                    }
+
                 }
+                // if (!timebox.isCacheValid() || currentTimebox){
+                //     oids.push(tbOid);
+                // }
                 return oids; 
-            },[]);
+            },[],this);
+            console.log('getTimeboxOidsWithInvalidCache',invalidOids)
             return invalidOids;
         },
         buildTimeboxFilter: function(timeboxGroup){
@@ -193,19 +216,25 @@ Ext.define('TimeboxHistoricalCacheFactory', {
         },
        
         saveHistoricalCacheToTimebox: function(updatedTimeboxRecords){
+            console.log('saveHistoricalCacheToTimebox',updatedTimeboxRecords);
             if (this.saveCacheToTimebox === true){
                 if (updatedTimeboxRecords.length > 0){
-                    console.log('saveHistoricalCacheToTimebox',updatedTimeboxRecords);
+                    console.log('updatedTimeboxRecords', updatedTimeboxRecords[0].get(this.persistedCacheField));
                     var store = Ext.create('Rally.data.wsapi.batch.Store', {
                         data: updatedTimeboxRecords
                     });
                     store.sync({
-                        success: function() {
-                            console.log('timeboxRecords saved',updatedTimeboxRecords.length);
+                        success: function(batch,options) {
+                            console.log('saveHistoricalCacheToTimebox batch', batch,options);
+                            if (batch.exceptions && batch.exceptions.length > 0){
+                                console.log("saveHistoricalCacheToTimebox EXCEPTIONS: ",batch.exceptions);
+                            }
+                            console.log(Ext.String.format("{0} timebox records updated.",updatedTimeboxRecords.length));
                         },
-                        failure: function(){
-                            console.log('timeboxRecords save FAILED',updatedTimeboxRecords.length);
-                        }
+                        failure: function(batch,options){
+                            console.log(Ext.String.format('timeboxRecords update failed with error'));
+                        },
+                        scope: this 
                     });
                 }
             }

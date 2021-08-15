@@ -1,14 +1,16 @@
 Ext.define('TimeboxCacheModelBuilder',{
     singleton: true,
     
-    CACHE_VERSION: 6,
+    CACHE_VERSION: 10,
                     
     //Cache Indexes 
     VALID_FROM_IDX: 0,
     VALID_TO_IDX: 1,
     DELIVERED_IDX:  2,
-    POINTS_IDX: 3,
-    FID_IDX: 4, 
+    PLANNED_POINTS_IDX: 3,
+    DELIVERED_POINTS_IDX: 4,
+    FID_IDX: 5, 
+    COUNT_IDX: 6,
 
     VIRTUAL_CACHE_FIELD_NAME: "__unpersistedCache",
    
@@ -39,21 +41,23 @@ Ext.define('TimeboxCacheModelBuilder',{
         }
         return hash;
     },
-    build: function(modelType,newModelName,historicalCacheFieldName,timeboxStartDateField,timeboxEndDateField) {
+    build: function(modelType,newModelName,persistedCacheFieldName,timeboxStartDateField,timeboxEndDateField) {
         var deferred = Ext.create('Deft.Deferred');
         Rally.data.ModelFactory.getModel({
             type: modelType,
             success: function(model) {
                 var default_fields = []; 
                 
-                if (historicalCacheFieldName === null){
-                    historicalCacheFieldName = TimeboxCacheModelBuilder.VIRTUAL_CACHE_FIELD_NAME;
-                    default_fields.push({
-                        name: historicalCacheFieldName,
-                        defaultValue: null,
-                        type: 'object'
-                    });    
-                }
+                //if (historicalCacheFieldName === null){
+                var historicalCacheFieldName = TimeboxCacheModelBuilder.VIRTUAL_CACHE_FIELD_NAME;
+                default_fields.push({
+                    name: historicalCacheFieldName,
+                    defaultValue: null,
+                    type: 'object'
+                 });    
+                //}
+
+
                 
                 var new_model = Ext.define(newModelName, {
                     extend: model,
@@ -61,9 +65,14 @@ Ext.define('TimeboxCacheModelBuilder',{
                     timeboxStartDateField: timeboxStartDateField,
                     timeboxEndDateField: timeboxEndDateField,
                     historicalCacheField: historicalCacheFieldName,
+                    persistedCacheField: persistedCacheFieldName,
                     fields: default_fields,
                     clearCache: function(){
-                        this.set(this.historicalCacheField,null);
+                        if (this.persistedCacheField){
+                            this.set(this.persistedCacheField,null);
+                            return true;
+                        }
+                        return false;
                     },
                     getStartDate: function(){
                         return this.get(this.timeboxStartDateField);
@@ -92,7 +101,7 @@ Ext.define('TimeboxCacheModelBuilder',{
                     isCacheValid: function(){
                         var cache = this.getCacheObject();
                         console.log('isCacheValid',JSON.stringify(cache));
-                        console.log('isCacheValid checksum',cache.checksum,this.getChecksum());
+                        console.log('isCacheValid checksum',cache && cache.checksum,this.getChecksum());
                         console.log('isCacheValid',this.get('Project').Name);
                         
                         return cache && cache.checksum === this.getChecksum() || false;
@@ -113,17 +122,19 @@ Ext.define('TimeboxCacheModelBuilder',{
                             var firstDayInRange = snaps[0]._ValidFrom,
                                 lastSnap = snaps[snaps.length - 1],
                                 lastDayInRange = lastSnap._ValidTo,
-                                deliveredDate = lastSnap[deliveredDateField] || null;
+                                deliveredDate = lastSnap[deliveredDateField] || null
+                                validFromPoints = snaps[0][pointsField],
+                                validToPoints = lastSnap[pointsField];
                             var cacheData = [];
-                            for (var i=0; i<snaps.length; i++){
-                                var objArray = []; 
-                                objArray[TimeboxCacheModelBuilder.VALID_FROM_IDX] = Date.parse(snaps[i]['_ValidFrom']);
-                                objArray[TimeboxCacheModelBuilder.VALID_TO_IDX] = Date.parse(snaps[i]['_ValidTo']);
-                                objArray[TimeboxCacheModelBuilder.DELIVERED_IDX] = Date.parse(snaps[i][deliveredDateField]);
-                                objArray[TimeboxCacheModelBuilder.POINTS_IDX] = snaps[i][pointsField];
-                                objArray[TimeboxCacheModelBuilder.FID_IDX] = snaps[i]['FormattedID'];
-                                cacheData.push(objArray);                                
-                            }    
+                            
+                            cacheData[TimeboxCacheModelBuilder.VALID_FROM_IDX] = Date.parse(firstDayInRange);
+                            cacheData[TimeboxCacheModelBuilder.VALID_TO_IDX] = Date.parse(lastDayInRange);
+                            cacheData[TimeboxCacheModelBuilder.DELIVERED_IDX] = deliveredDate && Date.parse(deliveredDate);
+                            cacheData[TimeboxCacheModelBuilder.PLANNED_POINTS_IDX] = snaps[0][pointsField] || 0;
+                            cacheData[TimeboxCacheModelBuilder.DELIVERED_POINTS_IDX] = lastSnap[pointsField] || 0;
+                            cacheData[TimeboxCacheModelBuilder.COUNT_IDX] = snaps.length;
+                            cacheData[TimeboxCacheModelBuilder.FID_IDX] = snaps[0]['FormattedID'];
+                               
                             cache.data[snapOid] = cacheData;
                         }, this);
                 
@@ -131,22 +142,43 @@ Ext.define('TimeboxCacheModelBuilder',{
                         //reloaded
                         var stringValue = JSON.stringify(cache);
                         console.log('buildCacheFromSnaps length',stringValue && stringValue.length);
-                        this.set(this.historicalCacheField,stringValue);
+                        this.set(this.historicalCacheField,cache);
                     },
                     getCacheObject: function(){
-                        var cache = this.get(this.historicalCacheField) || null;
-                        console.log('getCacheObject',cache, cache && cache.length);
-                        if (typeof cache !== 'object' && cache !== null){
-                            try {
-                                cache = JSON.parse(cache);
-                            } catch(ex){
-                                cache = {}
+                        return cache = this.get(this.historicalCacheField) || {};
+                    },
+                    loadCache: function(cacheField){
+                        var cache = null;
+                        if (cacheField){
+                            console.log('loadCache', this.get(cacheField))
+                            var savedCache = this.get(cacheField) || "";
+                            if (savedCache.length > 0){
+                                
+                                try {
+                                    cache = JSON.parse(savedCache);
+                                } catch (ex){
+                                    cache = {};
+                                }
+                                if (!_.isEmpty(cache)){
+                                    if (cache.checksum == this.getChecksum()){
+                                        this.set(this.historicalCacheField, cache);
+                                    }
+                                }
                             }
                         }
-                        if (cache && cache.checksum === this.getChecksum()){
-                            return cache; 
+                        console.log('loadCache',cache);
+                        return cache; 
+                    },
+                    persistCache: function(cacheField){
+                        if (cacheField){
+                            var currentCache = this.get(this.historicalCacheField) || {},
+                                savedCache = this.get(cacheField) || "{}";
+                            if (savedCache != JSON.stringify(currentCache)){
+                                this.set(cacheField,JSON.stringify(currentCache));
+                                return true; 
+                            }
                         }
-                        return {};
+                        return false;
                     },
                     getPlannedDeliveredMetrics: function(planningWindowShiftInDays, minDurationInHours,excludeAcceptedBeforeStart,usePoints){
                         var metrics = {
@@ -196,25 +228,26 @@ Ext.define('TimeboxCacheModelBuilder',{
                    },
                    getPlannedMetric: function(dataArray,usePoints){
                        if (usePoints){
-                            return dataArray[0][TimeboxCacheModelBuilder.POINTS_IDX] || 0;
-
+                            //return dataArray[0][TimeboxCacheModelBuilder.PLANNED_POINTS_IDX] || 0;
+                            return dataArray[TimeboxCacheModelBuilder.PLANNED_POINTS_IDX] || 0;
                         }
                         return 1; 
                    },
                    getDeliveredMetric: function(dataArray, usePoints){
                        if (usePoints){
-                            return dataArray[dataArray.length-1][TimeboxCacheModelBuilder.POINTS_IDX] || 0;
+                            return dataArray[TimeboxCacheModelBuilder.DELIVERED_POINTS_IDX] || 0;
+                            //return dataArray[dataArray.length-1][TimeboxCacheModelBuilder.POINTS_IDX] || 0;
                        }
                        return 1; 
                    },
                    getFirstDate: function(dataArray){
-                       return dataArray[0][TimeboxCacheModelBuilder.VALID_FROM_IDX];
+                       return dataArray[TimeboxCacheModelBuilder.VALID_FROM_IDX];
                    },
                    getLastDate: function(dataArray){
-                       return dataArray[dataArray.length-1][TimeboxCacheModelBuilder.VALID_TO_IDX];
+                       return dataArray[TimeboxCacheModelBuilder.VALID_TO_IDX];
                    },
                    getDeliveredDate: function(dataArray){
-                       return dataArray[dataArray.length-1][TimeboxCacheModelBuilder.DELIVERED_IDX] || null;
+                       return dataArray[TimeboxCacheModelBuilder.DELIVERED_IDX] || null;
                    },
                     isDataUnplanned: function(dataArray,planningDateMs){
                         return this.getFirstDate(dataArray) > planningDateMs;
@@ -226,7 +259,10 @@ Ext.define('TimeboxCacheModelBuilder',{
                         return this.getDeliveredDate(dataArray) && this.getDeliveredDate(dataArray) <= endDateMs && this.getLastDate(dataArray) > endDateMs;
                     },
                     getFormattedID: function(dataArray){
-                        return dataArray[0][TimeboxCacheModelBuilder.FID_IDX];
+                        return dataArray[TimeboxCacheModelBuilder.FID_IDX];
+                    },
+                    getSnapCount: function(dataArray){
+                        return dataArray[TimeboxCacheModelBuilder.COUNT_IDX];
                     },
                     getCacheDataForExport: function(planningWindowShiftInDays, minDurationInHours,excludeAcceptedBeforeStart){
                         var cache = this.getCacheObject(),
@@ -242,7 +278,7 @@ Ext.define('TimeboxCacheModelBuilder',{
                                 ValidFrom: Rally.util.DateTime.toIsoString(new Date(this.getFirstDate(o))),
                                 ValidTo: Rally.util.DateTime.toIsoString(new Date(this.getLastDate(o))),
                                 DeliveredDate: this.getDeliveredDate(o) ? Rally.util.DateTime.toIsoString(new Date(this.getDeliveredDate(o))) : "",
-                                SnapCount: o.length,
+                                SnapCount: this.getSnapCount(0),
                                 TimeboxName: this.get('Name'),
                                 Project: this.get('Project').Name,
                                 StartDate: Rally.util.DateTime.toIsoString(new Date(startDateMs)),
