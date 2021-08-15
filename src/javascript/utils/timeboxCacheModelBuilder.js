@@ -91,6 +91,9 @@ Ext.define('TimeboxCacheModelBuilder',{
                     },
                     isCacheValid: function(){
                         var cache = this.getCacheObject();
+                        console.log('isCacheValid',JSON.stringify(cache));
+                        console.log('isCacheValid checksum',cache.checksum,this.getChecksum());
+                        
                         return cache && cache.checksum === this.getChecksum() || false;
                     },
                     buildCacheFromSnaps: function(snapArraysByOid,deliveredDateField,pointsField){

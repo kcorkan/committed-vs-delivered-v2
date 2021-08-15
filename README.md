@@ -57,6 +57,51 @@ Export of the data that went into the calculations is available at all levels.  
 
 If the level that the app is being run at is a leaf project (e.g. Team level ) or the Parent of a team level project, then the option will be available to choose fields for exporting additional detail.  This option is not available at higher levels due to performance concerns.   
 
+### App Settings 
+#### Timebox Type 
+The type of timebox.  For this version of the app, the only type of timebox supported is Iteration. 
+
+#### Artifact Type
+The type of artifact to measure.  For this version of the app, the only type of artifact is User Story.  
+
+#### Timebox Count
+The number of timeboxes to show in the app, including the Current timebox if that option is selected.  
+
+#### Timebox Planning Window (days)
+The nubmer of days after the start of the timebox to allow items to be added and still be counted as "Planned" 
+
+#### Show Current in-progress timebox 
+Show the current in-progress timebox.  Note that this timebox will not have a valid historical cache until the timebox has ended.  If Save Cache to Timebox is enabled, selecting this option may cause slower performance since it will always additional calls to the lookback API.  
+
+#### Exclude Work Items Accepted before the iteration 
+If an item was accepted before adding to the Iteration, it will not be included in the planned/unplanned count or delivered count if this item is selected.  If this item is not selected, it will be calcualated according to the rules of all other items.  
+
+#### Show Sum of Plan Estimate
+Show the numbers by plan estimate instead of count.  Note that if stories do not have PlanEstimates populated, they will not be represented in the data.  
+
+#### Minimum Number of Hours an item needs to be in the timebox to be included 
+If greater than 0, then any items added and removed from the within the specified minDuration timeframe will NOT be counted towards planned/unplanned or delivered.  If an item is added less than ```minDuration``` hours before the sprint ends or removed ```minDuration``` hours after the planning window begins, it also will not be added.  
+
+#### Save Cache to Timebox
+If selected, compressed historical data will be stored in a custom field on the timebox to help with performance of the app at higher project levels.  
+
+#### Historical Cache Field
+If Save cache to Timebox is selected, then the historical cache will be saved in this field.  The field must be of type ```Text``` and also **hidden** to be selected as a historical cache field.  
+
+#### Enable Clear Cache 
+If this is selected, a button to clear the cache will be added to the app when loaded.  Clicking this button will clear out the cache of all timeboxes within the currently selectd project scope.  This is not recommended unless you are experiencing issues with the cached data.  Clicking this will cause the app to reload all historical data the next time it is run, affecting performance.  
+
+## Test Results 
+   ✓ should not count items accepted before the sprint if the excludeAcceptedBeforeSprint flag is on
+   ✓ should not count items that have existed in the sprint for less than a configured duration of time (minDurationInHours)
+   ✓ should count items in the timebox beyond the minDuration
+   ✓ if the item is in the timebox over the end date, then it should not count items added to the iteration less than the min duration before the end date
+   ✓ if the item is in the timebox over the end date, then it should count items added to the iteration beyond the min duration before the end date
+   ✓ should not count work items accepted after the timebox as delivered and it should count work items accepted after the timebox endDate in the planned/unplanned count for the timebox if they were in the timebox more than the minDuration
+   ✓ should count unplanned/planned points when they were added to the timebox and count the delivered points at the end of the timebox
+   ✓ should count missing points as 0
+   ✓ should count an item moved between sprints and back in both sprints if they were in each for the minDuration.  It should show delivered in the sprint the item was delivered in
+
 ## Development Notes
 
 The original committed v delivered looks at items in the iteration between the planning window and end of the iteration.  It then uses the oids from those items to load current items and get the accepted date.  Thus, items that have been deleted are not accounted for.  
