@@ -93,6 +93,7 @@ Ext.define('TimeboxCacheModelBuilder',{
                         var cache = this.getCacheObject();
                         console.log('isCacheValid',JSON.stringify(cache));
                         console.log('isCacheValid checksum',cache.checksum,this.getChecksum());
+                        console.log('isCacheValid',this.get('Project').Name);
                         
                         return cache && cache.checksum === this.getChecksum() || false;
                     },
@@ -102,6 +103,11 @@ Ext.define('TimeboxCacheModelBuilder',{
                                 checksum: checksum,
                                 data: {}
                             };
+                        console.log('buildCacheFromSnaps',JSON.stringify(snapsArraysByOid))
+                        console.log('buildCacheFromSnaps',deliveredDateField)
+                        console.log('buildCacheFromSnaps',pointsField)
+                        console.log('buildCacheFromSnaps',this.get('Project').Name);
+                        console.log('buildCacheFromSnaps',this.get('Name'));
                         _.each(snapArraysByOid, function(snapArray,snapOid){
                             var snaps = _.sortBy(snapArray, ["_ValidFrom"]);
                             var firstDayInRange = snaps[0]._ValidFrom,
