@@ -1,13 +1,24 @@
 Ext.define('TimeboxHistoricalCacheFactory', {
+    mixins: {
+        observable: 'Ext.util.Observable'
+    },
     
     dataContext: null,
     timeboxType: null,
     modelNames: [],
     saveCacheToTimebox: false,
     deliveredDateField: null,
+    pointsField: null,
     
     constructor: function (config) {
         _.merge(this,config);
+        this.mixins.observable.constructor.call(this, config);
+
+        this.addEvents(
+            'status',
+            'load'
+        );
+        this.counter = 0;
     },
 
     build: function(timeboxes){
@@ -17,37 +28,49 @@ Ext.define('TimeboxHistoricalCacheFactory', {
             //for each group, fetch the snapshots if needed
             var timeboxGroups = this.groupTimeboxes(timeboxes);
                         
+            this.counter = 0;
             var promises = _.map(timeboxGroups, function(timeboxGroup){
                 return this.buildTimeboxCache(timeboxGroup);
             },this);
+            this.totalCount = promises.length; 
+            this.updateStatus();
             return Deft.Promise.all(promises);
         }   
     },
     buildTimeboxCache: function(timeboxGroup){
             var deferred = Ext.create('Deft.Deferred');
-            console.log('buildTimeboxCache',timeboxGroup);
-
+            
             var filters = this.buildTimeboxFilter(timeboxGroup);
             if (filters.length === 0){
                 //No snapshots to load!
+                this.updateStatus();
                 deferred.resolve(timeboxGroup);
             } else {
-                console.log('fetchSnapshots start:' + Date.now());
-                console.log('fetchSnapshots filters:', filters);
-
+               
                 this.fetchSnapshots(filters).then({
                     success: function(snapshots){
-                        console.log('fetchSnapshots end:' + Date.now() + ' snaps.length: ' + snapshots.length);
                         this.processSnapshots(snapshots, timeboxGroup);
-                        deferred.resolve(timeboxGroup)
+                        this.counter++;
+                        this.updateStatus();
+                        deferred.resolve(timeboxGroup);
                     },
                     failure: function(msg){
+                        this.counter++;
+                        this.updateStatus();
                         deferred.reject("Error loading snapshots. " + msg);
                     },
                     scope: this 
                 });
             }
+
             return deferred.promise; 
+        },
+        updateStatus: function(){
+            if (this.counter >= this.totalCount){
+                this.fireEvent('load');
+            } else {
+                this.fireEvent('status',Ext.String.format('Loading History... {0}/{1}',this.counter,this.totalCount));
+            }
         },
         groupTimeboxes: function(timeboxes){
             return _.groupBy(timeboxes, function(timebox) {
@@ -55,15 +78,13 @@ Ext.define('TimeboxHistoricalCacheFactory', {
             });
         },
         processSnapshots: function(snapshots, timeboxGroup){
-            console.log('processsnapshots',snapshots,timeboxGroup);
-            console.log('timeboxGroup ', timeboxGroup[0].get('Name'));
-
             var snapshotsByTimeboxOid = {};
             if (snapshots.length > 0) {
                 
                 for (var i=0; i<snapshots.length; i++){
                     var snapshot = snapshots[i].getData();
                     var timeboxOid = snapshot[this.timeboxType];
+                
                     if (!snapshotsByTimeboxOid[timeboxOid]){
                         snapshotsByTimeboxOid[timeboxOid] = {};
                     }
@@ -74,45 +95,37 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                     snapshotsByTimeboxOid[timeboxOid][snap_oid].push(snapshot);
                 }
             }
-
             var updatedTimeboxes = [];
-
             for (var i=0; i<timeboxGroup.length; i++){
                 var timebox = timeboxGroup[i],
                     timeboxOid = timebox.get('ObjectID');
-
                 if (snapshotsByTimeboxOid[timeboxOid]){
-                    timebox.buildCacheFromSnaps(snapshotsByTimeboxOid[timeboxOid],this.deliveredDateField);
+                    timebox.buildCacheFromSnaps(snapshotsByTimeboxOid[timeboxOid],this.deliveredDateField,this.pointsField);
                     updatedTimeboxes.push(timebox);
                 }
             }
             this.saveHistoricalCacheToTimebox(updatedTimeboxes);
         },
         getTimeboxOidsWithInvalidCache: function(timeboxGroup){
-            console.log('getTimeboxOidsWithInvalidCache timeboxGroup',timeboxGroup);
             var currentTimebox = timeboxGroup[0].getEndDateMs() > Date.now();
 
             //Only get snapshots for timeboxes that don't have an upto date cache 
             var invalidOids = _.reduce(timeboxGroup, function(oids, timebox) {
                 var tbOid = timebox.get('ObjectID');
-                console.log('timebox',timebox);
                 if (!timebox.isCacheValid() || currentTimebox){
                     oids.push(tbOid);
                 }
                 return oids; 
             },[]);
-            console.log('getTimeboxOidsWithInvalidCache invalidOids',invalidOids)
             return invalidOids;
         },
         buildTimeboxFilter: function(timeboxGroup){
-            console.log('buildTimeboxFilter timeboxGroup',timeboxGroup);
             var timebox = timeboxGroup[0];
             if (timeboxGroup.length === 0){
                 return [];
             }
 
             var timeboxOids = this.getTimeboxOidsWithInvalidCache(timeboxGroup);
-            console.log('buildTimeboxFilter timeboxOids',timeboxOids);
             if (timeboxOids.length === 0){
                 return [];
             }
@@ -151,10 +164,15 @@ Ext.define('TimeboxHistoricalCacheFactory', {
             return filters;
         },
         fetchSnapshots: function(filters){
+            var fields = [this.timeboxType, '_ValidFrom', '_ValidTo', 'ObjectID',this.deliveredDateField,'FormattedID'];
+            if (this.pointsField){
+                fields.push(this.pointsField);
+            }
+
             var store = Ext.create('Rally.data.lookback.SnapshotStore', {
                 autoLoad: false,
                 context: this.dataContext,
-                fetch: [this.timeboxType, '_ValidFrom', '_ValidTo', 'ObjectID',this.deliveredDateField,'FormattedID'],
+                fetch: fields,
                 hydrate: [],
                 pageSize: 20000,
                 limit: Infinity,

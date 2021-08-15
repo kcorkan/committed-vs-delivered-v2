@@ -1,31 +1,26 @@
-Ext.define('TimeboxCacheMixin',{
-
- 
-});
-
-
 Ext.define('TimeboxCacheModelBuilder',{
     singleton: true,
     
-    CACHE_VERSION: 3,
+    CACHE_VERSION: 6,
                     
     //Cache Indexes 
     VALID_FROM_IDX: 0,
     VALID_TO_IDX: 1,
     DELIVERED_IDX:  2,
-    COUNT_IDX: 3,
+    POINTS_IDX: 3,
     FID_IDX: 4, 
 
     VIRTUAL_CACHE_FIELD_NAME: "__unpersistedCache",
    
-    getExportFieldsHash: function(){
+    getExportFieldsHash: function(fields){
         //coordinate this with getCacheDataForExport
-        return {
+
+        var hash = {
             ObjectID: "Object ID",
             FormattedID: "Formatted ID",
             ValidFrom: "Added to Timebox on or Before",
             ValidTo: "Removed from Timebox on or After",
-            DeliveredDate: "Accepted Date",
+            DeliveredDate: "Delivered Date",
             SnapCount: "Snapshot Count for Timebox",
             TimeboxName: "Timebox",
             Project: "Project",
@@ -33,16 +28,22 @@ Ext.define('TimeboxCacheModelBuilder',{
             EndDate: "Timebox End Date",
             Delivered: "is Delivered in Timebox",
             Planned: "is Planned",
+            Included: "is Included in Dataset",
             PlanningDate: "Planning Date Cutoff"
         };
+
+        if (fields && fields.length > 0){
+            for (var i=0; i< fields.length; i++){
+                hash[fields[i]] = fields[i];
+            }
+        }
+        return hash;
     },
-    build: function(modelType,newModelName,historicalCacheFieldName,timeboxStartDateField,timeboxEndDateField,excludeAcceptedBeforeStart) {
+    build: function(modelType,newModelName,historicalCacheFieldName,timeboxStartDateField,timeboxEndDateField) {
         var deferred = Ext.create('Deft.Deferred');
-        console.log('before model built', newModelName,historicalCacheFieldName,timeboxStartDateField,timeboxEndDateField);
         Rally.data.ModelFactory.getModel({
             type: modelType,
             success: function(model) {
-                console.log('model built', model);
                 var default_fields = []; 
                 
                 if (historicalCacheFieldName === null){
@@ -57,7 +58,6 @@ Ext.define('TimeboxCacheModelBuilder',{
                 var new_model = Ext.define(newModelName, {
                     extend: model,
                     //mixins: ['TimeboxCacheMixin'],
-                    excludeAcceptedBeforeStart: excludeAcceptedBeforeStart,
                     timeboxStartDateField: timeboxStartDateField,
                     timeboxEndDateField: timeboxEndDateField,
                     historicalCacheField: historicalCacheFieldName,
@@ -87,14 +87,13 @@ Ext.define('TimeboxCacheModelBuilder',{
                         for (var i = 0; i < string.length; i++) {
                             chk += (string.charCodeAt(i) * i);
                         }
-                        console.log('checksum ',chk);
                         return chk;
                     },
                     isCacheValid: function(){
                         var cache = this.getCacheObject();
                         return cache && cache.checksum === this.getChecksum() || false;
                     },
-                    buildCacheFromSnaps: function(snapArraysByOid,deliveredDateField){
+                    buildCacheFromSnaps: function(snapArraysByOid,deliveredDateField,pointsField){
                         var checksum = this.getChecksum(),
                             cache = {
                                 checksum: checksum,
@@ -106,20 +105,21 @@ Ext.define('TimeboxCacheModelBuilder',{
                                 lastSnap = snaps[snaps.length - 1],
                                 lastDayInRange = lastSnap._ValidTo,
                                 deliveredDate = lastSnap[deliveredDateField] || null;
-                
-                            var cacheArray = [];
-                            cacheArray[TimeboxCacheModelBuilder.VALID_FROM_IDX] = Date.parse(firstDayInRange);
-                            cacheArray[TimeboxCacheModelBuilder.VALID_TO_IDX] = Date.parse(lastDayInRange);
-                            cacheArray[TimeboxCacheModelBuilder.DELIVERED_IDX] = deliveredDate && Date.parse(deliveredDate),
-                            cacheArray[TimeboxCacheModelBuilder.COUNT_IDX] = snaps.length; //Should be < 100 chars 
-                            cacheArray[TimeboxCacheModelBuilder.FID_IDX] = snaps[0].FormattedID; 
-                            cache.data[snapOid] = cacheArray; 
-                            console.log('cache.data ', this.get('Name'),cache.data);
+                            var cacheData = [];
+                            for (var i=0; i<snaps.length; i++){
+                                var objArray = []; 
+                                objArray[TimeboxCacheModelBuilder.VALID_FROM_IDX] = Date.parse(snaps[i]['_ValidFrom']);
+                                objArray[TimeboxCacheModelBuilder.VALID_TO_IDX] = Date.parse(snaps[i]['_ValidTo']);
+                                objArray[TimeboxCacheModelBuilder.DELIVERED_IDX] = Date.parse(snaps[i][deliveredDateField]);
+                                objArray[TimeboxCacheModelBuilder.POINTS_IDX] = snaps[i][pointsField];
+                                objArray[TimeboxCacheModelBuilder.FID_IDX] = snaps[i]['FormattedID'];
+                                cacheData.push(objArray);                                
+                            }    
+                            cache.data[snapOid] = cacheData;
                         }, this);
                 
                         //NOTE: todo -- If the length of the cached data is > limit, we cannot save it to cache and it will always need to be
                         //reloaded
-                        console.log('buildCacheFromSnaps',this.historicalCacheField);
                         this.set(this.historicalCacheField,JSON.stringify(cache));
                     },
                     getCacheObject: function(){
@@ -136,76 +136,109 @@ Ext.define('TimeboxCacheModelBuilder',{
                         }
                         return {};
                     },
-                    getPlannedDeliveredMetrics: function(planningWindowShiftInDays){
-                         var metrics = {
-                             planned: 0,
-                             unplanned: 0,
-                             plannedDelivered: 0,
-                             unplannedDelivered: 0,
-                             acceptedBeforeStart: 0 
-                         };
-                
-                        var cache = this.getCacheObject(),
-                            startDateMs = this.getStartDateMs(),
-                            endDateMs = this.getEndDateMs(),
-                            planningDateMs = startDateMs + 86400000 * planningWindowShiftInDays;  
-                
-                        _.each(cache.data, function(dataArray, oid){
-                            
-                            var skip = false;
-                            console.log("getPlannedDeliveredMetrics: Accepted before iteration", this.excludeAcceptedBeforeStart,dataArray[TimeboxCacheModelBuilder.DELIVERED_IDX], startDateMs)
-                            console.log('is before iteration ', dataArray[TimeboxCacheModelBuilder.DELIVERED_IDX] < startDateMs);
-                            if (dataArray[TimeboxCacheModelBuilder.DELIVERED_IDX] < startDateMs && this.excludeAcceptedBeforeStart){
-                                skip = true 
+                    getPlannedDeliveredMetrics: function(planningWindowShiftInDays, minDurationInHours,excludeAcceptedBeforeStart,usePoints){
+                        var metrics = {
+                            planned: 0,
+                            unplanned: 0,
+                            plannedDelivered: 0,
+                            unplannedDelivered: 0,
+                            acceptedBeforeStart: 0 
+                        };
+               
+                       var cache = this.getCacheObject(),
+                           startDateMs = this.getStartDateMs(),
+                           endDateMs = this.getEndDateMs(),
+                           planningDateMs = startDateMs + 86400000 * planningWindowShiftInDays,
+                           minDuration = minDurationInHours * 3600000;  
+              
+                       _.each(cache.data, function(dataArray, oid){
+             
+                            var included = this.isIncluded(dataArray,excludeAcceptedBeforeStart,minDuration,startDateMs,endDateMs);
+                           if (included && this.isDataPlanned(dataArray, planningDateMs)){
+                               metrics.planned += this.getPlannedMetric(dataArray,usePoints);
+                               if (this.isDataDelivered(dataArray,endDateMs)){
+                                   metrics.plannedDelivered += this.getDeliveredMetric(dataArray,usePoints);
+                               }
+                           }
+                           if (included && this.isDataUnplanned(dataArray,planningDateMs)){
+                               metrics.unplanned += this.getPlannedMetric(dataArray,usePoints);
+                               if (this.isDataDelivered(dataArray,endDateMs)){
+                                   metrics.unplannedDelivered += this.getDeliveredMetric(dataArray,usePoints);
+                               }
+                           }        
+                       }, this);
+                        return metrics; 
+                   },
+                   isIncluded: function(dataArray,excludeAcceptedBeforeStart,minDuration,startDateMs,endDateMs){
+                    if (excludeAcceptedBeforeStart){
+                            if (this.getDeliveredDate(dataArray) && this.getDeliveredDate(dataArray) < startDateMs){
+                                return false;  
                             }
-                
-                            if (!skip && this.isDataPlanned(dataArray, planningDateMs)){
-                                metrics.planned++;
-                                if (this.isDataDelivered(dataArray,endDateMs)){
-                                    metrics.plannedDelivered++;
-                                }
-                            }
-                            if (!skip && this.isDataUnplanned(dataArray,planningDateMs)){
-                                metrics.unplanned++;
-                                if (this.isDataDelivered(dataArray,endDateMs)){
-                                    metrics.unplannedDelivered++;
-                                }
-                            }        
-                        }, this);
-                         return metrics; 
-                    },
+                       }
+                       if (minDuration > 0){
+                            var firstDate = Math.max(this.getFirstDate(dataArray), startDateMs),
+                            lastDate = Math.min(this.getLastDate(dataArray),endDateMs);
+                            return (lastDate - firstDate) > minDuration; 
+                       }
+                       return true;  
+                   },
+                   getPlannedMetric: function(dataArray,usePoints){
+                       if (usePoints){
+                            return dataArray[0][TimeboxCacheModelBuilder.POINTS_IDX] || 0;
+
+                        }
+                        return 1; 
+                   },
+                   getDeliveredMetric: function(dataArray, usePoints){
+                       if (usePoints){
+                            return dataArray[dataArray.length-1][TimeboxCacheModelBuilder.POINTS_IDX] || 0;
+                       }
+                       return 1; 
+                   },
+                   getFirstDate: function(dataArray){
+                       return dataArray[0][TimeboxCacheModelBuilder.VALID_FROM_IDX];
+                   },
+                   getLastDate: function(dataArray){
+                       return dataArray[dataArray.length-1][TimeboxCacheModelBuilder.VALID_TO_IDX];
+                   },
+                   getDeliveredDate: function(dataArray){
+                       return dataArray[dataArray.length-1][TimeboxCacheModelBuilder.DELIVERED_IDX] || null;
+                   },
                     isDataUnplanned: function(dataArray,planningDateMs){
-                        return dataArray[TimeboxCacheModelBuilder.VALID_FROM_IDX] > planningDateMs;
+                        return this.getFirstDate(dataArray) > planningDateMs;
                     },
                     isDataPlanned: function(dataArray,planningDateMs){
-                        return dataArray[TimeboxCacheModelBuilder.VALID_FROM_IDX] < planningDateMs && dataArray[TimeboxCacheModelBuilder.VALID_TO_IDX] > planningDateMs;
+                        return this.getFirstDate(dataArray) < planningDateMs && this.getLastDate(dataArray) > planningDateMs;
                     },
                     isDataDelivered: function(dataArray,endDateMs){
-                        return dataArray[TimeboxCacheModelBuilder.DELIVERED_IDX] && dataArray[TimeboxCacheModelBuilder.VALID_TO_IDX] > endDateMs;
+                        return this.getDeliveredDate(dataArray) && this.getDeliveredDate(dataArray) <= endDateMs && this.getLastDate(dataArray) > endDateMs;
                     },
-                    getCacheDataForExport: function(planningWindowShiftInDays){
+                    getFormattedID: function(dataArray){
+                        return dataArray[0][TimeboxCacheModelBuilder.FID_IDX];
+                    },
+                    getCacheDataForExport: function(planningWindowShiftInDays, minDurationInHours,excludeAcceptedBeforeStart){
                         var cache = this.getCacheObject(),
                             startDateMs = this.getStartDateMs(),
                             endDateMs = this.getEndDateMs(),
-                            planningDateMs = startDateMs + 86400000 * planningWindowShiftInDays;  
+                            planningDateMs = startDateMs + 86400000 * planningWindowShiftInDays,
+                            minDuration = minDurationInHours * 3600000; 
                 
                         return _.map(cache.data, function(o,oid){
-                            console.log('o',o);
-                            console.log(Rally.util.DateTime.toIsoString(new Date(o[TimeboxCacheModelBuilder.VALID_FROM_IDX])))
                             return {
                                 ObjectID: oid,
-                                FormattedID: o[TimeboxCacheModelBuilder.FID_IDX],
-                                ValidFrom: Rally.util.DateTime.toIsoString(new Date(o[TimeboxCacheModelBuilder.VALID_FROM_IDX])),
-                                ValidTo: Rally.util.DateTime.toIsoString(new Date(o[TimeboxCacheModelBuilder.VALID_TO_IDX])),
-                                DeliveredDate: o[TimeboxCacheModelBuilder.DELIVERED_IDX] ? Rally.util.DateTime.toIsoString(new Date(o[TimeboxCacheModelBuilder.DELIVERED_IDX])) : "",
-                                SnapCount: o[TimeboxCacheModelBuilder.COUNT_IDX],
+                                FormattedID: this.getFormattedID(o),
+                                ValidFrom: Rally.util.DateTime.toIsoString(new Date(this.getFirstDate(o))),
+                                ValidTo: Rally.util.DateTime.toIsoString(new Date(this.getLastDate(o))),
+                                DeliveredDate: this.getDeliveredDate(o) ? Rally.util.DateTime.toIsoString(new Date(this.getDeliveredDate(o))) : "",
+                                SnapCount: o.length,
                                 TimeboxName: this.get('Name'),
                                 Project: this.get('Project').Name,
                                 StartDate: Rally.util.DateTime.toIsoString(new Date(startDateMs)),
                                 EndDate: Rally.util.DateTime.toIsoString(new Date(endDateMs)),
                                 Delivered: this.isDataDelivered(o,endDateMs),
                                 Planned: this.isDataPlanned(o,planningDateMs),
-                                PlanningDate: Rally.util.DateTime.toIsoString(new Date(planningDateMs))
+                                Included: this.isIncluded(o,excludeAcceptedBeforeStart,minDuration,startDateMs,endDateMs),
+                                PlanningDate: Rally.util.DateTime.toIsoString(new Date(planningDateMs)),
                             }
                         },this);
                     }

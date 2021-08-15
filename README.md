@@ -6,6 +6,9 @@
 
 ## Scenarios - Difference between the original committed v delivered
 
+Displayed Iterations
+For the currently selected project, ...
+
 Artifact Moving 
 If a story is committed to a sprint and the story is accepted within the same sprint before the end date, it will be considered "Delivered" for that sprint.  
 
@@ -21,19 +24,28 @@ If something is added to the sprint and removed before the planning window, it w
 
 If there are more than 300 items in a timebox in a project, then the cache will not save an will always need to be recalculated 
 
-## Todo
-- validation of numbers/differences 
-- additional optimization changes
-- Add by estimate ?
-- add filter at lower level ?
-- test release for portfolio items 
-- update loading masks 
-- get rid of filter in upper left
-- add slider for planning window ?
-- add cache version for checking/cache management
-- add cache detail and compressed version 
-- add late delivery ?
-- clean up logging
+### Work Items Accepted after the Timebox End Date 
+Work Items accepted after the timebox end date will NOT count towards the delivered count.  
+Work Items accepted after the timebox end date WILL count towards the planned/unplanned count, depending on when they were added to the Sprint.  
+
+### Export
+Export of the data that went into the calculations is available at all levels.  This data includes:
+* ObjectID
+* FormattedID
+* Added to Timebox on or Before Date
+* Removed from the Timebox on or After Date 
+* Delivered Date (also the same as Accepted Date)
+* Snapshot Count for Timebox (number of snapshots found for the timebox window)
+* Timebox Name
+* Project
+* Timebox Start Date
+* Timebox End DAte
+* Is Delivered in Timebox
+* Is Planned (based on current app settings for planning window)
+* Is Included in Dataset (based on current app settings for excluding/including items based on AcceptedDate and duration in timebox)
+* Planning Date Cutoff (based on app settings for planning window)
+
+If the level that the app is being run at is a leaf project (e.g. Team level ) or the Parent of a team level project, then the option will be available to choose fields for exporting additional detail.  This option is not available at higher levels due to performance concerns.   
 
 ## Development Notes
 
