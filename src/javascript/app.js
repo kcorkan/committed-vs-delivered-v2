@@ -170,25 +170,46 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         var count =0,
             success = 0, 
             total = timeboxes.length;
-
+        var updatedTimeboxes = [];
         for (var i=0; i<timeboxes.length; i++){
             if (timeboxes[i].clearCache()){
-                timeboxes[i].save({
-                    callback: function(record,operation){
-                        count++;
-                        if (operation.wasSuccessful()){
-                            success++; 
-                            this.setLoading(Ext.String.format("Saving {0}/{1} timeboxes...",success,total));
-                        }
-                        if (count >= total){
-                            this.setLoading(false);
-                            Rally.ui.notify.Notifier.show({message: Ext.String.format("{0}/{1} timeboxes cleared.",success,total)})
-                        }
-                    },
-                    scope: this 
-                })
+                updatedTimeboxes.push(timeboxes[i]);
+                // timeboxes[i].save({
+                //     callback: function(record,operation){
+                //         count++;
+                //         if (operation.wasSuccessful()){
+                //             success++; 
+                //             this.setLoading(Ext.String.format("Saving {0}/{1} timeboxes...",success,total));
+                //         }
+                //         if (count >= total){
+                //             this.setLoading(false);
+                //             Rally.ui.notify.Notifier.show({message: Ext.String.format("{0}/{1} timeboxes cleared.",success,total)})
+                //         }
+                //     },
+                //     scope: this 
+                // })
             }
         }
+
+        if (updatedTimeboxes.length > 0){
+            var store = Ext.create('Rally.data.wsapi.batch.Store', {
+                data: updatedTimeboxes
+            });
+            store.sync({
+                success: function(batch,options) {
+                    if (batch.exceptions && batch.exceptions.length > 0){
+                        console.log("saveHistoricalCacheToTimebox EXCEPTIONS: ",batch.exceptions);
+                    }
+                    console.log(Ext.String.format("{0} timebox records updated.",updatedTimeboxes.length));
+                },
+                failure: function(batch,options){
+                    console.log(Ext.String.format('timeboxRecords update failed with error'));
+                },
+                scope: this 
+            });
+        }
+    
+        
     },
     getShowClearCache: function(){
         if (this.getSaveCacheToTimebox() ){

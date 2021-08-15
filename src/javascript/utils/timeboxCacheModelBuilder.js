@@ -129,10 +129,6 @@ Ext.define('TimeboxCacheModelBuilder',{
                             cache.data[snapOid] = cacheData;
                         }, this);
                 
-                        //NOTE: todo -- If the length of the cached data is > limit, we cannot save it to cache and it will always need to be
-                        //reloaded
-                        var stringValue = JSON.stringify(cache);
-                       // console.log('buildCacheFromSnaps length',stringValue && stringValue.length);
                         this.set(this.historicalCacheField,cache);
                     },
                     getCacheObject: function(){
@@ -161,10 +157,15 @@ Ext.define('TimeboxCacheModelBuilder',{
                         return cache; 
                     },
                     persistCache: function(cacheField){
+                           //NOTE: todo -- If the length of the cached data is > limit, we cannot save it to cache and it will always need to be
+                        //reloaded
+                     
                         if (cacheField){
                             var currentCache = this.get(this.historicalCacheField) || {},
                                 savedCache = this.get(cacheField) || "{}";
+                            console.log('persistCache',currentCache,savedCache)
                             if (savedCache != JSON.stringify(currentCache)){
+                                console.log('update persistCache',currentCache)
                                 this.set(cacheField,JSON.stringify(currentCache));
                                 return true; 
                             }

@@ -101,27 +101,32 @@ Ext.define('TimeboxHistoricalCacheFactory', {
             for (var i=0; i<timeboxGroup.length; i++){
                 var timebox = timeboxGroup[i],
                     timeboxOid = timebox.get('ObjectID');
+                var snaps = [];
                 if (snapshotsByTimeboxOid[timeboxOid]){
-                    timebox.buildCacheFromSnaps(snapshotsByTimeboxOid[timeboxOid],this.deliveredDateField,this.pointsField);
-                    if (this.saveCacheToTimebox === true){
-                        if (timebox.persistCache(this.persistedCacheField)){
-                            timebox.save({
-                                callback: function(record,operation){
-                                    if (operation.wasSuccessful()){
-                                        console.log('cache saved');
-                                    } else {
-                                        console.log('save error',timebox,operation)
-                                    }
-                                    
-                                }
-                            });
-                        }
-                        //updatedTimeboxes.push(timebox);
-                    }
-                    
+                    snaps = snapshotsByTimeboxOid[timeboxOid];
                 }
+
+                timebox.buildCacheFromSnaps(snaps,this.deliveredDateField,this.pointsField);
+                if (this.saveCacheToTimebox === true){
+                    if (timebox.persistCache(this.persistedCacheField)){
+                        updatedTimeboxes.push(timebox);
+                        // timebox.save({
+                        //     callback: function(record,operation){
+                        //         if (operation.wasSuccessful()){
+                        //             console.log('cache saved',record.get(this.persistedCacheField));
+                        //         } else {
+                        //             console.log('save error',timebox,operation)
+                        //         }
+                                
+                        //     }
+                        // });
+                    }
+                    //updatedTimeboxes.push(timebox);
+                }
+                    
+                
             }
-            //this.saveHistoricalCacheToTimebox(updatedTimeboxes);
+            this.saveHistoricalCacheToTimebox(updatedTimeboxes);
         },
         getTimeboxOidsWithInvalidCache: function(timeboxGroup){
             var currentTimebox = timeboxGroup[0].getEndDateMs() > Date.now();
@@ -134,9 +139,9 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                     oids.push(tbOid);
                 } else {
                     var persistedCache = timebox.loadCache(persistedCacheField);
-                    //('getTimeboxOidsWithInvalidCache',persistedCache)
+                    console.log('getTimeboxOidsWithInvalidCache persistedCache',persistedCache)
                     if (!persistedCache || _.isEmpty(persistedCache)){
-                      //  console.log('getTimeboxOidsWithInvalidCache',persistedCache)
+                        console.log('getTimeboxOidsWithInvalidCache',timebox.get('Name'), timebox.get('Project').Name)
                         oids.push(tbOid);
                     }
 
