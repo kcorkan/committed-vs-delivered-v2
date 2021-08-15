@@ -533,7 +533,11 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         return this.getSetting('saveCacheToTimebox') === true || this.getSetting('saveCacheToTimebox') === "true" || false;
     },
     getHistorcalCacheField: function(){
-        return this.getSetting('historicalCacheField');
+        if (this.getSaveCacheToTimebox()){
+            return this.getSetting('historicalCacheField');
+        }
+        return null;
+        
     },
     fetchTimeboxes: function(timeboxes, operation){
         var deferred = Ext.create('Deft.Deferred');
