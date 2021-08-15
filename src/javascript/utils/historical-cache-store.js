@@ -189,7 +189,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
         saveHistoricalCacheToTimebox: function(updatedTimeboxRecords){
             if (this.saveCacheToTimebox === true){
                 if (updatedTimeboxRecords.length > 0){
-                    console.log('saveHistoricalCacheToTimebox',updateTimeboxRecords);
+                    console.log('saveHistoricalCacheToTimebox',updatedTimeboxRecords);
                     var store = Ext.create('Rally.data.wsapi.batch.Store', {
                         data: updatedTimeboxRecords
                     });
