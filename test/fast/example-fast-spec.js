@@ -38,7 +38,7 @@ describe("HistoricalCacheStore ... ", function(){
         var cacheObject = timeboxes[0].getCacheObject(),
             cacheData = cacheObject.data[snaps[0].get('ObjectID')];
 
-        expect(timeboxes[0].getFirstDate(cacheData)).toEqual(Date.parse(snaps[0].get('_ValidFrom'))); 
+        expect(timeboxes[0].getFirstDate(cacheData)).toEqual(Date.parse(snaps[1].get('_ValidFrom'))); 
         expect(timeboxes[0].getLastDate(cacheData)).toEqual(Date.parse(snaps[snaps.length-1].get('_ValidTo'))); 
         expect(timeboxes[0].getDeliveredDate(cacheData)).toEqual(Date.parse(snaps[snaps.length-1].get('AcceptedDate'))) 
           
@@ -100,11 +100,7 @@ describe("HistoricalCacheStore ... ", function(){
         var timeboxGroup = cacheFactory.groupTimeboxes(timeboxes);
         cacheFactory.processSnapshots(snaps,timeboxGroup[tbName]);
 
-        var cacheObject = timeboxes[0].getCacheObject(),
-            cacheData = cacheObject.data[snaps[0].get('ObjectID')];
-        expect(timeboxes[0].getFirstDate(cacheData)).toEqual(Date.parse(snaps[0].get('_ValidFrom'))); 
-        expect(timeboxes[0].getLastDate(cacheData)).toEqual(Date.parse(snaps[snaps.length-1].get('_ValidTo'))); 
-        expect(timeboxes[0].getDeliveredDate(cacheData)).toEqual(Date.parse(snaps[snaps.length-1].get('AcceptedDate'))) 
+        var cacheObject = timeboxes[0].getCacheObject();
         
         excludeAcceptedBeforeStart = false; 
         usePoints = false;
@@ -355,6 +351,34 @@ describe("HistoricalCacheStore ... ", function(){
         expect (metrics.unplannedDelivered).toEqual(0);
         expect (metrics.plannedDelivered).toEqual(0);
         expect (metrics.unplanned).toEqual(5);
+    });
+
+    it ("should filter out items in iterations before the start date", function(){
+        var startDate = itemInSprintBeforeStart.timeboxStartDate,
+        endDate =itemInSprintBeforeStart.timeboxEndDate,
+        planningWindowShiftInDays = 1,
+        minDurationInHours = 0,
+        excludeAcceptedBeforeStart = false,
+        usePoints = false;
+
+        var timeboxes = buildTimeboxes_simple(timeboxModel, startDate, endDate,1,itemInSprintBeforeStart.timeboxOidStart);
+        var snaps = buildSnapsDataSet(itemInSprintBeforeStart.snaps);
+        
+        var tbOid = timeboxes[0].get('ObjectID'),
+            tbName = timeboxes[0].get('Name');
+    
+        var timeboxGroup = cacheFactory.groupTimeboxes(timeboxes);
+        cacheFactory.processSnapshots(snaps,timeboxGroup[tbName]);
+        
+        excludeAcceptedBeforeStart = false; 
+        usePoints = true;
+        minDurationInHours = 0;
+        var metrics = timeboxes[0].getPlannedDeliveredMetrics(planningWindowShiftInDays, minDurationInHours,excludeAcceptedBeforeStart,usePoints);
+        expect (metrics.planned).toEqual(0);
+        expect (metrics.unplannedDelivered).toEqual(0);
+        expect (metrics.plannedDelivered).toEqual(0);
+        expect (metrics.unplanned).toEqual(0);
+
     });
 
     it('should render the app', function() {

@@ -1,137 +1,86 @@
 Ext.define('TimeboxHistoricalCacheFactory', {
-    mixins: {
-        observable: 'Ext.util.Observable'
-    },
     
     dataContext: null,
     timeboxType: null,
     modelNames: [],
-    saveCacheToTimebox: false,
     deliveredDateField: null,
     pointsField: null,
     
     constructor: function (config) {
         _.merge(this,config);
-        this.mixins.observable.constructor.call(this, config);
-
-        this.addEvents(
-            'status',
-            'load'
-        );
-        this.counter = 0;
     },
 
-    build: function(timeboxes){
+    build: function(timeboxes, status){
         if (this.dataContext === null || this.timeboxType === null || this.deliveredDateField === null || !this.modelNames || this.modelNames.length === 0){
             throw "Please pass a dataContext, timeboxType, deliveredDateField and modelNames configuration.";
         } else {
             //for each group, fetch the snapshots if needed
             var timeboxGroups = this.groupTimeboxes(timeboxes);
                         
-            this.counter = 0;
             var promises = _.map(timeboxGroups, function(timeboxGroup){
-                return this.buildTimeboxCache(timeboxGroup);
+                return this.buildTimeboxCache(timeboxGroup, status);
             },this);
-            this.totalCount = promises.length; 
-            this.updateStatus();
             return Deft.Promise.all(promises);
         }   
     },
-    buildTimeboxCache: function(timeboxGroup){
+    buildTimeboxCache: function(timeboxGroup, status){
             var deferred = Ext.create('Deft.Deferred');
             
             var filters = this.buildTimeboxFilter(timeboxGroup);
             if (filters.length === 0){
                 //No snapshots to load!
-                this.updateStatus();
                 deferred.resolve(timeboxGroup);
             } else {
                
-                this.fetchSnapshots(filters).then({
+                this.fetchSnapshots(filters, status).then({
                     success: function(snapshots){
-                        this.processSnapshots(snapshots, timeboxGroup);
-                        this.counter++;
-                        this.updateStatus();
+                        this.processSnapshots(snapshots, timeboxGroup,status);
                         deferred.resolve(timeboxGroup);
                     },
                     failure: function(msg){
-                        this.counter++;
-                        this.updateStatus();
                         deferred.reject("Error loading snapshots. " + msg);
                     },
                     scope: this 
                 });
             }
-
             return deferred.promise; 
-        },
-        updateStatus: function(){
-            if (this.counter >= this.totalCount){
-                this.fireEvent('load');
-            } else {
-                this.fireEvent('status',Ext.String.format('Loading History... {0}/{1}',this.counter,this.totalCount));
-            }
         },
         groupTimeboxes: function(timeboxes){
             return _.groupBy(timeboxes, function(timebox) {
                 return timebox.get('Name');
             });
         },
-        processSnapshots: function(snapshots, timeboxGroup){
-            var snapshotsByTimeboxOid = {};
-        //    console.log('processSnapshots', snapshots);
+        processSnapshots: function(snapshots, timeboxGroup, status){
+            var timeboxType = this.timeboxType; 
+            var groupedOids = {};
             if (snapshots.length > 0) {
                 
-                for (var i=0; i<snapshots.length; i++){
-                    var snapshot = snapshots[i].getData();
-                    var timeboxOid = snapshot[this.timeboxType];
+                groupedOids = _.groupBy(snapshots, function(f) {
+                    return f.get(timeboxType);
+                });
                 
-                    if (!snapshotsByTimeboxOid[timeboxOid]){
-                        snapshotsByTimeboxOid[timeboxOid] = {};
-                    }
-                    var snap_oid = snapshot.ObjectID;
-                    if (!snapshotsByTimeboxOid[timeboxOid][snap_oid]){
-                        snapshotsByTimeboxOid[timeboxOid][snap_oid] = [];
-                    }
-                    snapshotsByTimeboxOid[timeboxOid][snap_oid].push(snapshot);
-                }
+                groupedOids = _.reduce(groupedOids,function(obj,snapshots,timebox){
+                    var snapsByOid = _.groupBy(snapshots, function(s){
+                        return s.get('ObjectID'); 
+                    });
+                    obj[timebox] = snapsByOid;  
+                    return obj
+                },{});
             }
-            //console.log('processSnapshots', snapshotsByTimeboxOid);
-            var updatedTimeboxes = [];
+
             for (var i=0; i<timeboxGroup.length; i++){
                 var timebox = timeboxGroup[i],
                     timeboxOid = timebox.get('ObjectID');
                 var snaps = [];
-                if (snapshotsByTimeboxOid[timeboxOid]){
-                    snaps = snapshotsByTimeboxOid[timeboxOid];
+                if (groupedOids[timeboxOid]){
+                    snaps = groupedOids[timeboxOid];
                 }
-
                 timebox.buildCacheFromSnaps(snaps,this.deliveredDateField,this.pointsField);
-                if (this.saveCacheToTimebox === true){
-                    if (timebox.persistCache(this.persistedCacheField)){
-                        updatedTimeboxes.push(timebox);
-                        // timebox.save({
-                        //     callback: function(record,operation){
-                        //         if (operation.wasSuccessful()){
-                        //             console.log('cache saved',record.get(this.persistedCacheField));
-                        //         } else {
-                        //             console.log('save error',timebox,operation)
-                        //         }
-                                
-                        //     }
-                        // });
-                    }
-                    //updatedTimeboxes.push(timebox);
-                }
-                    
-                
             }
-            this.saveHistoricalCacheToTimebox(updatedTimeboxes);
         },
         getTimeboxOidsWithInvalidCache: function(timeboxGroup){
             var currentTimebox = timeboxGroup[0].getEndDateMs() > Date.now();
             var persistedCacheField = this.persistedCacheField;
-           // console.log('getTimeboxOidsWithInvalidCache',timeboxGroup);
             //Only get snapshots for timeboxes that don't have an upto date cache 
             var invalidOids = _.reduce(timeboxGroup, function(oids, timebox) {
                 var tbOid = timebox.get('ObjectID');
@@ -139,19 +88,13 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                     oids.push(tbOid);
                 } else {
                     var persistedCache = timebox.loadCache(persistedCacheField);
-                    console.log('getTimeboxOidsWithInvalidCache persistedCache',persistedCache)
                     if (!persistedCache || _.isEmpty(persistedCache)){
-                        console.log('getTimeboxOidsWithInvalidCache',timebox.get('Name'), timebox.get('Project').Name)
                         oids.push(tbOid);
                     }
 
                 }
-                // if (!timebox.isCacheValid() || currentTimebox){
-                //     oids.push(tbOid);
-                // }
                 return oids; 
             },[],this);
-           // console.log('getTimeboxOidsWithInvalidCache',invalidOids)
             return invalidOids;
         },
         buildTimeboxFilter: function(timeboxGroup){
@@ -171,11 +114,11 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                     property: '_ValidFrom',
                     operator: '<=',
                     value: timeboxEndIso
-                },
-                {
-                    property: '_ValidTo',
-                    operator: '>=',
-                    value: timeboxStartIso
+                // },
+                // {
+                //     property: '_ValidTo',
+                //     operator: '>=',
+                //     value: timeboxStartIso
                 }
             ]);
           
@@ -198,7 +141,8 @@ Ext.define('TimeboxHistoricalCacheFactory', {
             ];
             return filters;
         },
-        fetchSnapshots: function(filters){
+        fetchSnapshots: function(filters, status){
+            var key = 'Loading historical data';
             var fields = [this.timeboxType, '_ValidFrom', '_ValidTo', 'ObjectID',this.deliveredDateField,'FormattedID'];
             if (this.pointsField){
                 fields.push(this.pointsField);
@@ -209,35 +153,27 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                 context: this.dataContext,
                 fetch: fields,
                 hydrate: [],
-                pageSize: 20000,
+                //pageSize: 20000,
+                sortConfig: {},
                 limit: Infinity,
                 remoteSort: false,
                 compress: true,
                 useHttpPost: true, 
                 filters: filters,
+                exceptionHandler: function(proxy, request){
+                    status.addError(key);
+                },
+    
+                listeners: {
+                    beforeload: function(){
+                        status.progressStart(key);
+                    },
+                    load: function(){
+                        status.progressEnd(key);
+                    },
+                    scope: this
+                }
             });
             return store.load();
-        },
-       
-        saveHistoricalCacheToTimebox: function(updatedTimeboxRecords){
-            if (this.saveCacheToTimebox === true){
-                if (updatedTimeboxRecords.length > 0){
-                    var store = Ext.create('Rally.data.wsapi.batch.Store', {
-                        data: updatedTimeboxRecords
-                    });
-                    store.sync({
-                        success: function(batch,options) {
-                            if (batch.exceptions && batch.exceptions.length > 0){
-                                console.log("saveHistoricalCacheToTimebox EXCEPTIONS: ",batch.exceptions);
-                            }
-                            console.log(Ext.String.format("{0} timebox records updated.",updatedTimeboxRecords.length));
-                        },
-                        failure: function(batch,options){
-                            console.log(Ext.String.format('timeboxRecords update failed with error'));
-                        },
-                        scope: this 
-                    });
-                }
-            }
         }
 });

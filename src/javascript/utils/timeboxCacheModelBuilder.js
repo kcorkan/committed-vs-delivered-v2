@@ -108,31 +108,48 @@ Ext.define('TimeboxCacheModelBuilder',{
                                 checksum: checksum,
                                 data: {}
                             };
+                        var startDateMs = this.getStartDateMs();
                         _.each(snapArraysByOid, function(snapArray,snapOid){
-                            var snaps = _.sortBy(snapArray, ["_ValidFrom"]);
-                            var firstDayInRange = snaps[0]._ValidFrom,
-                                lastSnap = snaps[snaps.length - 1],
-                                lastDayInRange = lastSnap._ValidTo,
-                                deliveredDate = lastSnap[deliveredDateField] || null
-                                validFromPoints = snaps[0][pointsField],
-                                validToPoints = lastSnap[pointsField];
-                            var cacheData = [];
+                         
+                            var snaps = _.sortBy(snapArray, function(s){ 
+                                return new Date(s.data._ValidFrom).getTime();
+                            }).filter(function(snap){
+                                return !(new Date(snap.data._ValidTo).getTime() <= startDateMs);
+                            });
+                            if (snaps.length > 0){
+
+                                var firstDayInRange = snaps[0].data._ValidFrom,
+                                    lastSnap = snaps[snaps.length - 1].data,
+                                    lastDayInRange = lastSnap._ValidTo,
+                                    deliveredDate = lastSnap[deliveredDateField] || null
+                                    validFromPoints = snaps[0][pointsField],
+                                    validToPoints = lastSnap[pointsField];
+                                var cacheData = [];
+
+                                cacheData[TimeboxCacheModelBuilder.VALID_FROM_IDX] = Date.parse(firstDayInRange);
+                                cacheData[TimeboxCacheModelBuilder.VALID_TO_IDX] = Date.parse(lastDayInRange);
+                                cacheData[TimeboxCacheModelBuilder.DELIVERED_IDX] = deliveredDate && Date.parse(deliveredDate);
+                                cacheData[TimeboxCacheModelBuilder.PLANNED_POINTS_IDX] = snaps[0].data[pointsField] || 0;
+                                cacheData[TimeboxCacheModelBuilder.DELIVERED_POINTS_IDX] = lastSnap[pointsField] || 0;
+                                cacheData[TimeboxCacheModelBuilder.COUNT_IDX] = snaps.length;
+                                cacheData[TimeboxCacheModelBuilder.FID_IDX] = snaps[0].data['FormattedID'];
+                                
+                                cache.data[snapOid] = cacheData;
+                            }
                             
-                            cacheData[TimeboxCacheModelBuilder.VALID_FROM_IDX] = Date.parse(firstDayInRange);
-                            cacheData[TimeboxCacheModelBuilder.VALID_TO_IDX] = Date.parse(lastDayInRange);
-                            cacheData[TimeboxCacheModelBuilder.DELIVERED_IDX] = deliveredDate && Date.parse(deliveredDate);
-                            cacheData[TimeboxCacheModelBuilder.PLANNED_POINTS_IDX] = snaps[0][pointsField] || 0;
-                            cacheData[TimeboxCacheModelBuilder.DELIVERED_POINTS_IDX] = lastSnap[pointsField] || 0;
-                            cacheData[TimeboxCacheModelBuilder.COUNT_IDX] = snaps.length;
-                            cacheData[TimeboxCacheModelBuilder.FID_IDX] = snaps[0]['FormattedID'];
-                               
-                            cache.data[snapOid] = cacheData;
                         }, this);
                 
                         this.set(this.historicalCacheField,cache);
                     },
                     getCacheObject: function(){
                         return cache = this.get(this.historicalCacheField) || {};
+                    },
+                    getPersistedCacheObject: function(cacheField){
+                        try {
+                            return JSON.parse(this.get(cacheField));
+                        } catch(ex){
+                        }
+                        return {};
                     },
                     loadCache: function(cacheField){
                         var cache = null;
@@ -157,16 +174,20 @@ Ext.define('TimeboxCacheModelBuilder',{
                         return cache; 
                     },
                     persistCache: function(cacheField){
-                           //NOTE: todo -- If the length of the cached data is > limit, we cannot save it to cache and it will always need to be
+                        //NOTE: todo -- If the length of the cached data is > limit, we cannot save it to cache and it will always need to be
                         //reloaded
-                     
-                        if (cacheField){
+                        
+                        if (cacheField && this.getEndDate() < new Date()){  //we don't want to save cache's that are current
                             var currentCache = this.get(this.historicalCacheField) || {},
-                                savedCache = this.get(cacheField) || "{}";
-                            console.log('persistCache',currentCache,savedCache)
-                            if (savedCache != JSON.stringify(currentCache)){
-                                console.log('update persistCache',currentCache)
-                                this.set(cacheField,JSON.stringify(currentCache));
+                                savedCache = this.getPersistedCacheObject(cacheField);
+                            
+                            if (savedCache.checksum === currentCache.checksum){
+                                return false;  
+                            }
+                            
+                            var currentCacheStr = JSON.stringify(currentCache);
+                            if (JSON.stringify(savedCache) != currentCacheStr){
+                                this.set(cacheField,currentCacheStr);
                                 return true; 
                             }
                         }

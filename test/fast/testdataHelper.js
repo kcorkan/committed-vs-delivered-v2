@@ -285,3 +285,19 @@ var movedItems = {
         "FormattedID": "S207054"
     }]
 };
+
+var itemInSprintBeforeStart = {
+    timeboxStartDate: "2018-10-03T00:00:00Z",
+    timeboxEndDate:"2018-10-17T00:00:00Z",
+    timeboxOidStart: 254865338488,
+    snaps: [{
+        AcceptedDate: "",
+        FormattedID: "US26977",
+        Iteration: 254865338488,
+        ObjectID: 254865350152,
+        PlanEstimate: 20,
+        Project: 46641719800,
+        _ValidFrom: "2018-09-20T21:51:02.116Z",
+        _ValidTo: "2018-09-20T21:59:10.131Z"
+    }]
+}

@@ -141,14 +141,11 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         return this.getSetting('minDurationInHours') || 0;
     },
     getPointsField: function(){
-        //if (this.getSetting('showBySumOfEstimate') === "true" || this.getSetting('showBySumOfEstimate') === true){
-            var field = "PlanEstimate";
-            if (this.isPiTypeSelected()){
-                field = "LeafStoryPlanEstimateTotal";
-            }
-            return field;
-        //}
-        //return null;
+        var field = "PlanEstimate";
+        if (this.isPiTypeSelected()){
+            field = "LeafStoryPlanEstimateTotal";
+        }
+        return field;
     },
     setTimeboxFieldsForType: function(timeboxType) {
         this.timeboxType = timeboxType;
@@ -166,49 +163,122 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         return this.projectIsHighLevel === false;
     },
     clearCache: function(){
+        var key = 'Clearing timebox cache';
         var timeboxes = this.timeboxes; 
-
+        var status = this._getNewStatus();
         var updatedTimeboxes = [];
+        var promises = [];
         for (var i=0; i<timeboxes.length; i++){
             if (timeboxes[i].clearCache()){
-                updatedTimeboxes.push(timeboxes[i]);
-                // timeboxes[i].save({
-                //     callback: function(record,operation){
-                //         count++;
-                //         if (operation.wasSuccessful()){
-                //             success++; 
-                //             this.setLoading(Ext.String.format("Saving {0}/{1} timeboxes...",success,total));
-                //         }
-                //         if (count >= total){
-                //             this.setLoading(false);
-                //             Rally.ui.notify.Notifier.show({message: Ext.String.format("{0}/{1} timeboxes cleared.",success,total)})
-                //         }
-                //     },
-                //     scope: this 
-                // })
+                promises.push(this._saveRecord(timeboxes[i],status,key));
             }
         }
-
-        if (updatedTimeboxes.length > 0){
-            
-            var store = Ext.create('Rally.data.wsapi.batch.Store', {
-                data: updatedTimeboxes
-            });
-            store.sync({
-                success: function(batch,options) {
-                    if (batch.exceptions && batch.exceptions.length > 0){
-                        console.log("saveHistoricalCacheToTimebox EXCEPTIONS: ",batch.exceptions);
-                    }
-                    console.log(Ext.String.format("{0} timebox records updated.",updatedTimeboxes.length));
-                },
-                failure: function(batch,options){
-                    console.log(Ext.String.format('timeboxRecords update failed with error'));
+        if (promises.length > 0){
+            Deft.Promise.all(promises).then({
+                success: function(){
+                    this.setLoading(false);   
                 },
                 scope: this 
             });
         }
-    
+    },
+    persistCache: function(historicalCacheField){
+        var key = 'Saving timebox cache';
+        var timeboxes = this.timeboxes; 
+        var status = this._getNewStatus();
+       
+        var promises = [];
+        for (var i=0; i<timeboxes.length; i++){
+            if (timeboxes[i].persistCache(historicalCacheField)){
+                promises.push(this._saveRecord(timeboxes[i],status,key));
+            }
+        }
+        if (promises.length > 0){
+            Deft.Promise.all(promises).then({
+                success: function(){
+                    this.setLoading(false);   
+                },
+                scope: this 
+            });
+        }
+    },
+    _saveRecord: function(record,status,key){
+        var deferred = Ext.create('Deft.Deferred');
+        status.progressStart(key);
+        record.save({
+            callback: function(record,operation){
+                if (operation.wasSuccessful()){
+                    status.progressEnd(key);
+                } else {
+                    status.addError(key);
+                }
+                deferred.resolve();
+            }
+        });
+        return deferred.promise; 
+    },
+    _saveBatchRecords: function(updatedRecords){
+        //Currently not used until batch can be tested
         
+            if (updatedRecords.length > 0){
+                var store = Ext.create('Rally.data.wsapi.batch.Store', {
+                    data: updatedRecords
+                });
+                store.sync({
+                    success: function(batch,options) {
+                        if (batch.exceptions && batch.exceptions.length > 0){
+                            console.log("saveHistoricalCacheToTimebox EXCEPTIONS: ",batch.exceptions);
+                        }
+                        console.log(Ext.String.format("{0} timebox records updated.",updatedRecords.length));
+                    },
+                    failure: function(batch,options){
+                        console.log(Ext.String.format('timeboxRecords update failed with error'));
+                    },
+                    scope: this 
+                });
+            }
+        
+    },
+    _getNewStatus: function(){
+        var app = this;
+        return {
+            counters: {},
+            errors: [],
+            addError: function(key) {
+                this.errors.push('Error loading ' + key);
+            },
+            progressStart: function(key,verb) {
+                this.counters[key] = this.counters[key] || {total: 0, complete: 0};
+                this.counters[key].total++;
+                this.progressUpdate(key);
+                var benchmarkDate = new Date();  
+                benchmarkDate = Ext.String.format("{0}:{1}.{2}",benchmarkDate.getUTCMinutes(),benchmarkDate.getUTCSeconds(),benchmarkDate.getMilliseconds());
+                console.log('bench START ' + key + '[' + this.counters[key].total + '] ' + benchmarkDate);
+            },
+
+            progressEnd: function(key) {
+                this.counters[key] = this.counters[key] || {total: 0, complete: 0};
+                this.counters[key].complete++;
+               this.progressUpdate(key);
+               var benchmarkDate = new Date();  
+               benchmarkDate = Ext.String.format("{0}:{1}.{2}",benchmarkDate.getUTCMinutes(),benchmarkDate.getUTCSeconds(),benchmarkDate.getMilliseconds());
+               console.log('bench END ' + key + '[' + this.counters[key].complete + '] ' + benchmarkDate);
+            },
+
+            progressUpdate: function() {
+                if (this.errors.length > 0) {
+                    app.setLoading(this.errors.join('\n'));
+                } else {
+                    var statusMessages = _.map(this.counters, function(val, key) {
+                        return key + ' (' + val.complete + '/' + val.total + ')'
+                    })
+                    app.setLoading(statusMessages.join('</br>'));
+                }
+            },
+            done: function(){
+                app.setLoading(false);
+            }
+        };
     },
     getShowClearCache: function(){
         if (this.getSaveCacheToTimebox() ){
@@ -511,28 +581,21 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     },
     buildHistoricalCache: function(timeboxes) {
         // Group by timebox name
-     
+        console.log('timeboxes',timeboxes)
         var dataContext = this.getContext().getDataContext();
         dataContext.includePermissions = false; 
+        var status = this._getNewStatus();
         this.timeboxes = timeboxes; 
         return Ext.create('TimeboxHistoricalCacheFactory',{
             timeboxType: this.getSetting('timeboxType'),
             dataContext: dataContext,
-            saveCacheToTimebox: this.getSaveCacheToTimebox(),
             deliveredDateField: this.getDeliveredDateField(),
-            persistedCacheField: this.getHistorcalCacheField(),
             modelNames: ['HierarchicalRequirement'],
-            pointsField: this.getPointsField(),
-            listeners: {
-                status: function(msg){
-                    this.setLoading(msg);
-                },
-                load: function(){
-                    this.setLoading(false);
-                },
-                scope: this 
-            }
-        }).build(timeboxes);
+            pointsField: this.getPointsField()
+        }).build(timeboxes,status);
+    },
+    _clearMask: function(){
+        this.setLoading(false);
     },
     getSaveCacheToTimebox: function(){
         return this.getSetting('saveCacheToTimebox') === true || this.getSetting('saveCacheToTimebox') === "true" || false;
@@ -646,6 +709,10 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                 this.timeboxGroups = timeboxGroups;
                 this._rebuildChart(timeboxGroups);
                 this.setLoading(false);
+                if (this.getSaveCacheToTimebox()){
+                    this.persistCache(this.getHistorcalCacheField());
+                }
+                
             }
         });
     },
