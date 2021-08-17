@@ -97,10 +97,6 @@ Ext.define('TimeboxCacheModelBuilder',{
                             
                         return Ext.String.format("{0}-{1}-{2}",TimeboxCacheModelBuilder.CACHE_VERSION,startDate,endDate);
                     },
-                    isCacheValid: function(){
-                        var cache = this.getCacheObject();
-                        return cache && cache.checksum === this.getChecksum() || false;
-                    },
                     buildCacheFromSnaps: function(snapArraysByOid,deliveredDateField,pointsField){
                         var checksum = this.getChecksum(),
                             cache = {

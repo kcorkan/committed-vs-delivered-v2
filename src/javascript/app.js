@@ -776,6 +776,9 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                 this.setLoading(false);
                 this.timeboxGroups = timeboxGroups;
                 this._showChart(timeboxGroups);
+                if (this.getSaveCacheToTimebox()){
+                    this.persistCache(this.getHistorcalCacheField());
+                }
             }
         });
     },
@@ -787,10 +790,6 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         var chartConfig = this._buildChartConfig(chartData);
         
         chartArea.add(chartConfig);
-
-        if (this.getSaveCacheToTimebox()){
-            this.persistCache(this.getHistorcalCacheField());
-        }
     },
     _showCacheManagement: function(){
         if (!this.getShowCacheManagement()){
@@ -824,7 +823,10 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                     if (v === null){
                         cacheStatus = "empty";
                     } else {
-                        if (r.isCacheValid()){
+                        var obj = {};
+                        try { obj = JSON.parse(v); } catch (ex){}
+
+                        if (obj && obj.checksum === r.getChecksum()){
                             cacheStatus = "valid";
                         }
                     }
@@ -835,8 +837,10 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                 dataIndex: this.getHistorcalCacheField(),
                 flex: 1,
                 renderer: function(v,m,r){
-                    var data = r.getPersistedCacheObject(historicalCacheField) && r.getPersistedCacheObject(historicalCacheField).data || r.getPersistedCacheObject(historicalCacheField);
-                    return JSON.stringify(data,null,2);
+                    var obj = {};
+                    try { obj = JSON.parse(v); } catch (ex){}
+                    obj = obj && obj.data || obj;
+                    return JSON.stringify(obj,null,2);
                 }
             }] 
         });    
