@@ -15,3 +15,31 @@
     margin-right: 5px;
     cursor: pointer;
 }
+.cache-status {
+    cursor: pointer;
+    font-family: ProximaNovaSemiBold,helvetica,sans-serif;
+    font-size: 9px;
+    font-weight: 400;
+    line-height: .8rem;
+    padding-bottom: 1px;
+    padding-right: 3px;
+    padding-left: 3px;
+    padding-top: 3px;
+    text-align: center;
+    text-transform: uppercase;
+    vertical-align: middle;
+    border-radius: 3px;
+  }
+  
+  .empty {
+      background-color: #C0C0C0;
+      color: #000000;
+  }
+  .valid {
+      background-color: #8DC63F;
+      color: #FFFFFF;
+  }
+  .invalid {
+     background-color: #EE1C25;
+     color: #E6E6E6;
+  }

@@ -1,7 +1,7 @@
 Ext.define('TimeboxCacheModelBuilder',{
     singleton: true,
     
-    CACHE_VERSION: 10,
+    CACHE_VERSION:   2,
                     
     //Cache Indexes 
     VALID_FROM_IDX: 0,
@@ -67,10 +67,15 @@ Ext.define('TimeboxCacheModelBuilder',{
                     historicalCacheField: historicalCacheFieldName,
                     persistedCacheField: persistedCacheFieldName,
                     fields: default_fields,
-                    clearCache: function(){
-                        if (this.persistedCacheField){
-                            this.set(this.persistedCacheField,null);
-                            return true;
+                    clearCache: function(persistedCacheField,force){
+                        //Unless force is passed, this will only clean cached fields that are not valid
+                        var currentPersistedCache = this.getPersistedCacheObject(persistedCacheField);
+                        if (!_.isEmpty(currentPersistedCache)){
+                            console.log('checksum',currentPersistedCache.checksum,this.getChecksum(),force)
+                            if (force || !currentPersistedCache.checksum || currentPersistedCache.checksum !== this.getChecksum()){
+                                this.set(persistedCacheField,null);
+                                return true;  
+                            }
                         }
                         return false;
                     },
@@ -90,13 +95,7 @@ Ext.define('TimeboxCacheModelBuilder',{
                         var startDate = this.getStartDateMs(),
                             endDate = this.getEndDateMs();
                             
-                        var chk = 0x12345678,
-                            string = Ext.String.format("{0}|{1}|{2}",TimeboxCacheModelBuilder.CACHE_VERSION,startDate,endDate);
-                        
-                        for (var i = 0; i < string.length; i++) {
-                            chk += (string.charCodeAt(i) * i);
-                        }
-                        return chk;
+                        return Ext.String.format("{0}-{1}-{2}",TimeboxCacheModelBuilder.CACHE_VERSION,startDate,endDate);
                     },
                     isCacheValid: function(){
                         var cache = this.getCacheObject();
