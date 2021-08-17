@@ -155,18 +155,10 @@ Ext.define('TimeboxCacheModelBuilder',{
                         var cache = null;
                         if (cacheField){
                            // console.log('loadCache', this.get(cacheField))
-                            var savedCache = this.get(cacheField) || "";
-                            if (savedCache.length > 0){
-                                
-                                try {
-                                    cache = JSON.parse(savedCache);
-                                } catch (ex){
-                                    cache = {};
-                                }
-                                if (!_.isEmpty(cache)){
-                                    if (cache.checksum == this.getChecksum()){
-                                        this.set(this.historicalCacheField, cache);
-                                    }
+                            var cache = this.getPersistedCacheObject(cacheField);
+                            if (!_.isEmpty(cache)){
+                                if (cache.checksum == this.getChecksum()){
+                                    this.set(this.historicalCacheField, cache);
                                 }
                             }
                         }

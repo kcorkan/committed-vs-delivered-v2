@@ -592,7 +592,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             deliveredDateField: this.getDeliveredDateField(),
             modelNames: ['HierarchicalRequirement'],
             pointsField: this.getPointsField()
-        }).build(timeboxes,status);
+        }).build(timeboxes,status,this.getHistorcalCacheField());
     },
     _clearMask: function(){
         this.setLoading(false);

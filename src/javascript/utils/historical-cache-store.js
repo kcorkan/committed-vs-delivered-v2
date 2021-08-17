@@ -10,7 +10,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
         _.merge(this,config);
     },
 
-    build: function(timeboxes, status){
+    build: function(timeboxes, status,persistedCacheField){
         if (this.dataContext === null || this.timeboxType === null || this.deliveredDateField === null || !this.modelNames || this.modelNames.length === 0){
             throw "Please pass a dataContext, timeboxType, deliveredDateField and modelNames configuration.";
         } else {
@@ -18,15 +18,15 @@ Ext.define('TimeboxHistoricalCacheFactory', {
             var timeboxGroups = this.groupTimeboxes(timeboxes);
                         
             var promises = _.map(timeboxGroups, function(timeboxGroup){
-                return this.buildTimeboxCache(timeboxGroup, status);
+                return this.buildTimeboxCache(timeboxGroup, status,persistedCacheField);
             },this);
             return Deft.Promise.all(promises);
         }   
     },
-    buildTimeboxCache: function(timeboxGroup, status){
+    buildTimeboxCache: function(timeboxGroup, status,persistedCacheField){
             var deferred = Ext.create('Deft.Deferred');
             
-            var filters = this.buildTimeboxFilter(timeboxGroup);
+            var filters = this.buildTimeboxFilter(timeboxGroup,persistedCacheField);
             if (filters.length === 0){
                 //No snapshots to load!
                 deferred.resolve(timeboxGroup);
@@ -78,9 +78,8 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                 timebox.buildCacheFromSnaps(snaps,this.deliveredDateField,this.pointsField);
             }
         },
-        getTimeboxOidsWithInvalidCache: function(timeboxGroup){
+        getTimeboxOidsWithInvalidCache: function(timeboxGroup,persistedCacheField){
             var currentTimebox = timeboxGroup[0].getEndDateMs() > Date.now();
-            var persistedCacheField = this.persistedCacheField;
             //Only get snapshots for timeboxes that don't have an upto date cache 
             var invalidOids = _.reduce(timeboxGroup, function(oids, timebox) {
                 var tbOid = timebox.get('ObjectID');
@@ -97,13 +96,13 @@ Ext.define('TimeboxHistoricalCacheFactory', {
             },[],this);
             return invalidOids;
         },
-        buildTimeboxFilter: function(timeboxGroup){
+        buildTimeboxFilter: function(timeboxGroup,persistedCacheField){
             var timebox = timeboxGroup[0];
             if (timeboxGroup.length === 0){
                 return [];
             }
 
-            var timeboxOids = this.getTimeboxOidsWithInvalidCache(timeboxGroup);
+            var timeboxOids = this.getTimeboxOidsWithInvalidCache(timeboxGroup,persistedCacheField);
             if (timeboxOids.length === 0){
                 return [];
             }
