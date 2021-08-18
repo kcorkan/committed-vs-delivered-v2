@@ -98,9 +98,10 @@ Ext.define('TimeboxCacheModelBuilder',{
                         return Ext.String.format("{0}-{1}-{2}",TimeboxCacheModelBuilder.CACHE_VERSION,startDate,endDate);
                     },
                     buildCacheFromSnaps: function(snapArraysByOid,deliveredDateField,pointsField,cacheField){
-                        var checksum = this.getChecksum(),
-                            cache = {
-                                checksum: checksum,
+                        var cache = {
+                                startDate: this.getStartDateMs(),
+                                endDate: this.getEndDateMs(),
+                                version: TimeboxCacheModelBuilder.CACHE_VERSION,
                                 data: {}
                             };
                         var startDateMs = this.getStartDateMs();
@@ -130,7 +131,7 @@ Ext.define('TimeboxCacheModelBuilder',{
                                 cacheData[TimeboxCacheModelBuilder.FID_IDX] = snaps[0].data['FormattedID'];
                                 
                                 cache.data[snapOid] = cacheData;
-                            }
+                            } 
                             
                         }, this);
                 
@@ -156,8 +157,11 @@ Ext.define('TimeboxCacheModelBuilder',{
                            // console.log('loadCache', this.get(cacheField))
                             var cache = this.getPersistedCacheObject(cacheField);
                             if (!_.isEmpty(cache)){
-                                if (cache.checksum == this.getChecksum()){
+                                if (cache.version == TimeboxCacheModelBuilder.CACHE_VERSION &&
+                                    cache.startDate == this.getStartDateMs() && cache.endDate == this.getEndDateMs()){
                                     this.set(this.historicalCacheField, cache);
+                                } else {
+                                    cache = null;
                                 }
                             }
                         }
