@@ -172,9 +172,10 @@ Ext.define('TimeboxCacheModelBuilder',{
                     persistCache: function(cacheField){
                         //NOTE: todo -- If the length of the cached data is > limit, we cannot save it to cache and it will always need to be
                         //reloaded
-                        if (!cacheField){
+                        if (!cacheField || this.getEndDate() > new Date()){
                             return false; 
                         }
+             
                         return this.__isDirty; 
 
 
