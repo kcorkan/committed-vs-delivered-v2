@@ -71,13 +71,19 @@ Ext.define('TimeboxCacheModelBuilder',{
                         //Unless force is passed, this will only clean cached fields that are not valid
                         var currentPersistedCache = this.getPersistedCacheObject(persistedCacheField);
                         if (!_.isEmpty(currentPersistedCache)){
-                            console.log('checksum',currentPersistedCache.checksum,this.getChecksum(),force)
-                            if (force || !currentPersistedCache.checksum || currentPersistedCache.checksum !== this.getChecksum()){
+                            if (force || !this.isCacheValid()){
+                            //if (force || !currentPersistedCache.checksum || currentPersistedCache.checksum !== this.getChecksum()){
                                 this.set(persistedCacheField,null);
                                 return true;  
                             }
                         }
                         return false;
+                    },
+                    isCacheValid: function(cacheObject){
+                        if (!cacheObject){ return false; }
+                        return cacheObject.version == TimeboxCacheModelBuilder.CACHE_VERSION &&
+                                cacheObject.startDate == this.getStartDateMs() &&
+                                cacheObject.endDate == this.getEndDateMs();
                     },
                     getStartDate: function(){
                         return this.get(this.timeboxStartDateField);
@@ -91,12 +97,7 @@ Ext.define('TimeboxCacheModelBuilder',{
                     getEndDateMs: function(){
                         return Date.parse(this.get(this.timeboxEndDateField));
                     },
-                    getChecksum: function(){
-                        var startDate = this.getStartDateMs(),
-                            endDate = this.getEndDateMs();
-                            
-                        return Ext.String.format("{0}-{1}-{2}",TimeboxCacheModelBuilder.CACHE_VERSION,startDate,endDate);
-                    },
+
                     buildCacheFromSnaps: function(snapArraysByOid,deliveredDateField,pointsField,cacheField){
                         var cache = {
                                 startDate: this.getStartDateMs(),

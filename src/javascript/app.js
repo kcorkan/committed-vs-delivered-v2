@@ -856,7 +856,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                         var obj = {};
                         try { obj = JSON.parse(v); } catch (ex){}
 
-                        if (obj && obj.checksum === r.getChecksum()){
+                        if (r.isCacheValid(obj)){
                             cacheStatus = "valid";
                         }
                     }
