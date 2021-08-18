@@ -817,7 +817,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                 }
             },{
                 text: 'Cache Valid',
-                dataIndex: this.getHistorcalCacheField(),
+                dataIndex: historicalCacheField,
                 renderer: function(v,m,r){
                     var cacheStatus = "invalid";
                     if (v === null){
@@ -831,7 +831,14 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                         }
                     }
                     return '<div><span class="cache-status ' + cacheStatus + '">'+ cacheStatus + '</span></div>'
-                }
+                },
+                // processEvent: function(type, view, cell, rowIndex, cellIndex, e, record){
+                //     if (type == "mousedown" && e.getTarget('.cache-status')) {
+                //         var cacheData = record.get(historicalCacheField);
+                //         var content = window.open("data:application/json,{a: b}","_blank");
+                //         content.focus();
+                //     }
+                // }
             },{
                 text: 'Cache Data',
                 dataIndex: this.getHistorcalCacheField(),
@@ -917,7 +924,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     },
     hideCacheSettings: function(hide){
         this.up().down('#historicalCacheField').setDisabled(hide);
-        this.up().down('#showClearCache').setDisabled(hide);
+        this.up().down('#showCacheManagement').setDisabled(hide);
     },
     getSettingsFields: function(){
 

@@ -165,7 +165,7 @@ Ext.define('TimeboxCacheModelBuilder',{
                         //reloaded
                         
                         if (cacheField && this.getEndDate() < new Date()){  //we don't want to save cache's that are current
-                            var currentCache = this.get(this.historicalCacheField) || {},
+                            var currentCache = this.getCacheObject() || {},
                                 savedCache = this.getPersistedCacheObject(cacheField);
                             
                             if (savedCache.checksum === currentCache.checksum){
