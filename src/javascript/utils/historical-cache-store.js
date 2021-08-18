@@ -106,7 +106,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
             if (timeboxOids.length === 0){
                 return [];
             }
-
+            console.log('invalidTimeboxOids',timeboxOids);
             var timeboxStartIso = timebox.getStartDate().toISOString();
             var timeboxEndIso = timebox.getEndDate().toISOString();
             var dateFilter = Rally.data.lookback.QueryFilter.and([{
@@ -152,7 +152,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                 context: this.dataContext,
                 fetch: fields,
                 hydrate: [],
-                //pageSize: 20000,
+                pageSize: 20000,
                 sortConfig: {},
                 limit: Infinity,
                 remoteSort: false,
