@@ -33,13 +33,12 @@ Ext.define('TimeboxCacheModelBuilder',{
             Included: "is Included in Dataset",
             PlanningDate: "Planning Date Cutoff"
         };
-
-        if (fields && fields.length > 0){
-            for (var i=0; i< fields.length; i++){
-                hash[fields[i]] = fields[i];
+        return _.reduce(fields, function(obj,f){
+            if (!hash[f]){
+                hash[f] =f; 
             }
-        }
-        return hash;
+            return hash;
+        },hash);
     },
     build: function(modelType,newModelName,persistedCacheFieldName,timeboxStartDateField,timeboxEndDateField) {
         var deferred = Ext.create('Deft.Deferred');

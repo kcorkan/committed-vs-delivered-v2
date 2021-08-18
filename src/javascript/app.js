@@ -162,7 +162,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     getShowControls: function(){
         return this.projectIsHighLevel === false;
     },
-    clearCache: function(){ 
+    clearCache: function(force){ 
         var key = 'Clearing timebox cache batch';
         var timeboxes = this.timeboxes; 
         var status = this._getNewStatus();
@@ -183,13 +183,13 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         // }
         var timeboxesToUpdate = [];
         for (var i=0; i<timeboxes.length; i++){
-            if (timeboxes[i].clearCache(this.getHistorcalCacheField(),false)){
+            if (timeboxes[i].clearCache(this.getHistorcalCacheField(),force)){
                 timeboxesToUpdate.push(timeboxes[i]);
             }
         }
         var promises = [],
             status = this._getNewStatus();
-        var chunks = this._chunk(timeboxesToUpdate, 1000);
+        var chunks = this._chunk(timeboxesToUpdate, 500);
         for (var i=0; i<chunks.length; i++){
             promises.push(this._saveBatchRecords(chunks[i],status,key));
         }
@@ -356,19 +356,32 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         controlsArea.removeAll();
         
         if (this.getShowCacheManagement()){
-            controlsArea.add({
-                xtype:'rallybutton',
-                iconCls: 'icon-refresh',
-                handler: this.clearCache,
-                scope: this 
-            });
+
             controlsArea.add({
                 xtype:'rallybutton',
                 text: 'View Cache',
                 handler: this._showCacheManagement,
                 scope: this 
             });
-            controlsArea.add({
+            var cacheControls = controlsArea.add({
+                xtype: 'container',
+                itemId: 'cache-management-controls',
+                layout: 'hbox'
+            });
+            cacheControls.add({
+                xtype:'rallybutton',
+                iconCls: 'icon-refresh',
+                handler: function(){this.clearCache(false);},
+                scope: this 
+            });
+            cacheControls.add({
+                xtype:'rallybutton',
+                iconCls: 'Clear All',
+                handler: function(){this.clearCache(true);},
+                scope: this 
+            });
+            
+            cacheControls.add({
                 xtype:'rallybutton',
                 text: 'View Chart',
                 handler: this._showChart,
@@ -474,9 +487,11 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         
     },
     exportFile: function(dataArray, fields){
+        console.log('dataArray',dataArray);
         if (dataArray.length > 0){      
             var fileName = Ext.String.format("plannedDelivered_{0}.csv",Rally.util.DateTime.format(new Date(),"Ymd_His"));
             var csvText = CArABU.technicalservices.FileUtilities.convertDataArrayToCSVText(dataArray, TimeboxCacheModelBuilder.getExportFieldsHash(fields));
+            console.log(dataArray, TimeboxCacheModelBuilder.getExportFieldsHash(fields))
             CArABU.technicalservices.FileUtilities.saveCSVToFile(csvText, fileName);
         }
     },
@@ -523,13 +538,11 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             hash[r.get('ObjectID')] = r.getData();
             return hash;
         },{});
+
         for (var i=0; i< dataArray.length; i++){
             var detailRec = hash[dataArray[i].ObjectID] || {};
-            for (var j=0; j<fields.length; j++){
+            for (var j=0; j<fields.length; j++){                
                 dataArray[i][fields[j]] = detailRec[fields[j]] || "";
-                if (typeof dataArray[i][fields[j]] === 'object'){
-                    dataArray[i][fields[j]] = dataArray[i][fields[j]]._refObjectName; 
-                }
             }
         }
         return dataArray;  
@@ -785,7 +798,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     _showChart: function(){
         var chartArea = this.down('#grid-area')
         chartArea.removeAll();
-
+        this.down('#cache-management-controls') && this.down('#cache-management-controls').hide();
         var chartData = this._buildChartData(this.timeboxGroups);
         var chartConfig = this._buildChartConfig(chartData);
         
@@ -796,8 +809,11 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             return;
         }
 
+        this.down('#cache-management-controls').show();
         var gridArea = this.down('#grid-area')
         gridArea.removeAll();
+
+
   
         var timeboxStore = Ext.create('Rally.data.custom.Store',{
             data: this.timeboxes
