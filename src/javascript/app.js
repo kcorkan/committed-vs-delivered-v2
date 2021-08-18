@@ -970,13 +970,17 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                 labelWidth: labelWidth,
                 storeConfig: {
                     model: "TypeDefinition",
-                    fetch: ['TypePath','Name'],
+                    fetch: ['TypePath','DisplayName'],
                     filters: {
                         property: "TypePath",
                         value: "Iteration"
-                    }
+                    },
+                    autoLoad: false,
+                    remoteSort: false,
+                    remoteFilter: true
                 },
-                displayField: 'Name',
+                displayField: 'DisplayName',
+                readyEvent: 'ready',
                 valueField: 'TypePath',
                 labelAlign: labelAlign
         },{
@@ -986,13 +990,17 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             labelWidth: labelWidth,
             storeConfig: {
                 model: "TypeDefinition",
-                fetch: ['TypePath','Name'],
+                fetch: ['TypePath','DisplayName'],
                 filters: {
                     property: "TypePath",
                     value: "HierarchicalRequirement"
-                }
+                },
+                autoLoad: false,
+                remoteSort: false,
+                remoteFilter: true
             },
-            displayField: 'Name',
+            displayField: 'DisplayName',
+            readyEvent: 'ready',
             valueField: 'TypePath',
             labelAlign: labelAlign
         },{
