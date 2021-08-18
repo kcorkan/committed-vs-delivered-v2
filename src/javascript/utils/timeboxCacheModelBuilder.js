@@ -66,6 +66,7 @@ Ext.define('TimeboxCacheModelBuilder',{
                     historicalCacheField: historicalCacheFieldName,
                     persistedCacheField: persistedCacheFieldName,
                     fields: default_fields,
+                    __isDirty: false,
                     clearCache: function(persistedCacheField,force){
                         //Unless force is passed, this will only clean cached fields that are not valid
                         var currentPersistedCache = this.getPersistedCacheObject(persistedCacheField);
@@ -96,7 +97,7 @@ Ext.define('TimeboxCacheModelBuilder',{
                             
                         return Ext.String.format("{0}-{1}-{2}",TimeboxCacheModelBuilder.CACHE_VERSION,startDate,endDate);
                     },
-                    buildCacheFromSnaps: function(snapArraysByOid,deliveredDateField,pointsField){
+                    buildCacheFromSnaps: function(snapArraysByOid,deliveredDateField,pointsField,cacheField){
                         var checksum = this.getChecksum(),
                             cache = {
                                 checksum: checksum,
@@ -134,6 +135,10 @@ Ext.define('TimeboxCacheModelBuilder',{
                         }, this);
                 
                         this.set(this.historicalCacheField,cache);
+                        if (cacheField){
+                            this.set(cacheField,JSON.stringify(cache));
+                            this.__isDirty = true;
+                        }
                     },
                     getCacheObject: function(){
                         return cache = this.get(this.historicalCacheField) || {};
@@ -162,21 +167,26 @@ Ext.define('TimeboxCacheModelBuilder',{
                     persistCache: function(cacheField){
                         //NOTE: todo -- If the length of the cached data is > limit, we cannot save it to cache and it will always need to be
                         //reloaded
-                        
-                        if (cacheField && this.getEndDate() < new Date()){  //we don't want to save cache's that are current
-                            var currentCache = this.getCacheObject() || {},
-                                savedCache = this.getPersistedCacheObject(cacheField);
-                            
-                            if (savedCache.checksum === currentCache.checksum){
-                                return false;  
-                            }
-                            
-                            var currentCacheStr = JSON.stringify(currentCache);
-                            if (JSON.stringify(savedCache) != currentCacheStr){
-                                this.set(cacheField,currentCacheStr);
-                                return true; 
-                            }
+                        if (!cacheField){
+                            return false; 
                         }
+                        return this.__isDirty; 
+
+
+                        // if (cacheField && this.getEndDate() < new Date()){  //we don't want to save cache's that are current
+                        //     var currentCache = this.getCacheObject() || {},
+                        //         savedCache = this.getPersistedCacheObject(cacheField);
+                            
+                        //     if (savedCache.checksum === currentCache.checksum){
+                        //         return false;  
+                        //     }
+                            
+                        //     var currentCacheStr = JSON.stringify(currentCache);
+                        //     if (JSON.stringify(savedCache) != currentCacheStr){
+                        //         this.set(cacheField,currentCacheStr);
+                        //         return true; 
+                        //     }
+                        // }
                         return false;
                     },
                     getPlannedDeliveredMetrics: function(planningWindowShiftInDays, minDurationInHours,excludeAcceptedBeforeStart,usePoints){

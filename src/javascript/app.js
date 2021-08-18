@@ -189,7 +189,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         }
         var promises = [],
             status = this._getNewStatus();
-        var chunks = this._chunk(timeboxesToUpdate, 500);
+        var chunks = this._chunk(timeboxesToUpdate, 100);
         for (var i=0; i<chunks.length; i++){
             promises.push(this._saveBatchRecords(chunks[i],status,key));
         }

@@ -34,7 +34,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                
                 this.fetchSnapshots(filters, status).then({
                     success: function(snapshots){
-                        this.processSnapshots(snapshots, timeboxGroup,status);
+                        this.processSnapshots(snapshots, timeboxGroup,persistedCacheField);
                         deferred.resolve(timeboxGroup);
                     },
                     failure: function(msg){
@@ -50,7 +50,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                 return timebox.get('Name');
             });
         },
-        processSnapshots: function(snapshots, timeboxGroup, status){
+        processSnapshots: function(snapshots, timeboxGroup, persistedCacheField){
             var timeboxType = this.timeboxType; 
             var groupedOids = {};
             if (snapshots.length > 0) {
@@ -75,7 +75,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                 if (groupedOids[timeboxOid]){
                     snaps = groupedOids[timeboxOid];
                 }
-                timebox.buildCacheFromSnaps(snaps,this.deliveredDateField,this.pointsField);
+                timebox.buildCacheFromSnaps(snaps,this.deliveredDateField,this.pointsField,persistedCacheField);
             }
         },
         getTimeboxOidsWithInvalidCache: function(timeboxGroup,persistedCacheField){
@@ -90,7 +90,6 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                     if (!persistedCache || _.isEmpty(persistedCache)){
                         oids.push(tbOid);
                     }
-
                 }
                 return oids; 
             },[],this);
