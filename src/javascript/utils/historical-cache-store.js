@@ -20,6 +20,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
             var promises = _.map(timeboxGroups, function(timeboxGroup){
                 return this.buildTimeboxCache(timeboxGroup, status,persistedCacheField);
             },this);
+
             return Deft.Promise.all(promises);
         }   
     },
@@ -87,7 +88,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                     oids.push(tbOid);
                 } else {
                     var persistedCache = timebox.loadCache(persistedCacheField);
-                    if (!persistedCache || _.isEmpty(persistedCache)){
+                    if (!persistedCache){
                         oids.push(tbOid);
                     }
                 }

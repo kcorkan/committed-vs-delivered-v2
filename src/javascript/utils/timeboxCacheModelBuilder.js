@@ -153,7 +153,6 @@ Ext.define('TimeboxCacheModelBuilder',{
                         return {};
                     },
                     loadCache: function(cacheField){
-                        var cache = null;
                         if (cacheField){
                            // console.log('loadCache', this.get(cacheField))
                             var cache = this.getPersistedCacheObject(cacheField);
@@ -161,13 +160,12 @@ Ext.define('TimeboxCacheModelBuilder',{
                                 if (cache.version == TimeboxCacheModelBuilder.CACHE_VERSION &&
                                     cache.startDate == this.getStartDateMs() && cache.endDate == this.getEndDateMs()){
                                     this.set(this.historicalCacheField, cache);
-                                } else {
-                                    cache = null;
-                                }
+                                    return true; 
+                                } 
                             }
                         }
                        // console.log('loadCache',cache);
-                        return cache; 
+                        return false; 
                     },
                     persistCache: function(cacheField){
                         //NOTE: todo -- If the length of the cached data is > limit, we cannot save it to cache and it will always need to be
