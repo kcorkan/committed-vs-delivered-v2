@@ -366,7 +366,8 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             var cacheControls = controlsArea.add({
                 xtype: 'container',
                 itemId: 'cache-management-controls',
-                layout: 'hbox'
+                layout: 'hbox',
+                hidden: true 
             });
             cacheControls.add({
                 xtype:'rallybutton',
@@ -378,14 +379,14 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                 xtype:'rallybutton',
                 iconCls: 'Clear All',
                 handler: function(){this.clearCache(true);},
-                scope: this 
+                scope: this
             });
             
             cacheControls.add({
                 xtype:'rallybutton',
                 text: 'View Chart',
                 handler: this._showChart,
-                scope: this 
+                scope: this
             });
         }
 
@@ -666,6 +667,9 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     },
     buildHistoricalCache: function(timeboxes) {
         // Group by timebox name
+
+        if (timeboxes.length === 0){ return []; }
+
         console.log('timeboxes',timeboxes)
         var dataContext = this.getContext().getDataContext();
         dataContext.includePermissions = false; 
@@ -710,17 +714,23 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             return this.fetchTimeboxGroup(tbFilter);
         },this);
 
-        Deft.Promise.all(promises).then({
-            scope: this,
-            success: function(results){
-                deferred.resolve(_.flatten(results));
-            },
-            failure: function(msg){
-                deferred.reject("Error loading timeboxes");
-            }
-        }).always(function(){
+        if (promises.length > 0){
+            Deft.Promise.all(promises).then({
+                scope: this,
+                success: function(results){
+                    deferred.resolve(_.flatten(results));
+                },
+                failure: function(msg){
+                    deferred.reject("Error loading timeboxes");
+                }
+            }).always(function(){
+                this.setLoading(false);
+            },this);
+        } else {
             this.setLoading(false);
-        },this);
+            deferred.resolve([]);
+        }
+        
         return deferred.promise;       
     },
     fetchTimeboxGroup: function(timeboxFilters){
@@ -788,9 +798,13 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             success: function(timeboxGroups) {
                 this.setLoading(false);
                 this.timeboxGroups = timeboxGroups;
-                this._showChart(timeboxGroups);
-                if (this.getSaveCacheToTimebox()){
-                    this.persistCache(this.getHistorcalCacheField());
+                if (timeboxGroups.length === 0){
+                    this._showAppMessage("No timeboxes found for the currently selected project.");
+                } else {
+                    this._showChart(timeboxGroups);
+                    if (this.getSaveCacheToTimebox()){
+                        this.persistCache(this.getHistorcalCacheField());
+                    }
                 }
             }
         });
