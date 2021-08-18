@@ -954,7 +954,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     },
     hideCacheSettings: function(hide){
         this.up().down('#historicalCacheField').setDisabled(hide);
-        this.up().down('#showCacheManagement').setDisabled(hide);
+        this.up().down('#showCacheManagement') && this.up().down('#showCacheManagement').setDisabled(hide);
     },
     getSettingsFields: function(){
 
@@ -1067,14 +1067,14 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                     return false;
                 },
                 labelAlign: labelAlign
-        },{
-            xtype: 'rallycheckboxfield',
-            name: 'showCacheManagement',
-            fieldLabel: 'Enable Cache Management',
-            itemId: 'showCacheManagement',
-            labelWidth: labelWidth  + 50,
-            disabled: !showCache, 
-            labelAlign: labelAlign
+        // },{
+        //     xtype: 'rallycheckboxfield',
+        //     name: 'showCacheManagement',
+        //     fieldLabel: 'Enable Cache Management',
+        //     itemId: 'showCacheManagement',
+        //     labelWidth: labelWidth  + 50,
+        //     disabled: !showCache, 
+        //     labelAlign: labelAlign
         }];
     }
 });

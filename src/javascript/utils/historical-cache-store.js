@@ -75,8 +75,8 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                 var snaps = [];
                 if (groupedOids[timeboxOid]){
                     snaps = groupedOids[timeboxOid];
+                    timebox.buildCacheFromSnaps(snaps,this.deliveredDateField,this.pointsField,persistedCacheField);
                 }
-                timebox.buildCacheFromSnaps(snaps,this.deliveredDateField,this.pointsField,persistedCacheField);
             }
         },
         getTimeboxOidsWithInvalidCache: function(timeboxGroup,persistedCacheField){
