@@ -541,9 +541,10 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         },{});
 
         for (var i=0; i< dataArray.length; i++){
-            var detailRec = hash[dataArray[i].ObjectID] || {};
-            for (var j=0; j<fields.length; j++){                
-                dataArray[i][fields[j]] = detailRec[fields[j]] || "";
+            var detailRec = hash[dataArray[i].ObjectID] || {},
+                emptyText = _.isEmpty(detailRec) ? "[deleted]" : "";
+            for (var j=0; j<fields.length; j++){         
+                dataArray[i][fields[j]] = detailRec[fields[j]] || dataArray[i][fields[j]] || emptyText;       
             }
         }
         return dataArray;  
