@@ -610,7 +610,8 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
 
         var numTimeboxGroups = timeboxGroups.length;
         var minDurationInHours = this.getMinDurationInHours(),
-            excludeAcceptedBeforeStart = this.getExcludeAcceptedBeforeStart();
+            excludeAcceptedBeforeStart = this.getExcludeAcceptedBeforeStart(),
+            usePoints = this.getShowBySumOfEstimate();
         for (var i=numTimeboxGroups-1; i>=0; i--){
             if (timeboxGroups[i].length > 0){
                 var unplanned = 0,
@@ -620,7 +621,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
 
                 chartData.categories.push(timeboxGroups[i][0].get('Name'));
                 for (var j=0; j<timeboxGroups[i].length; j++){
-                    var metrics = timeboxGroups[i][j].getPlannedDeliveredMetrics(planningWindow,minDurationInHours,excludeAcceptedBeforeStart);
+                    var metrics = timeboxGroups[i][j].getPlannedDeliveredMetrics(planningWindow,minDurationInHours,excludeAcceptedBeforeStart, usePoints);
                     unplanned += metrics.unplanned;
                     committed += metrics.planned;
                     unplannedDelivered += metrics.unplannedDelivered;
@@ -634,7 +635,9 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         }
         return chartData;
     },
-    
+    getShowBySumOfEstimate: function(){
+        return this.getSetting('showBySumOfEstimate') == true || this.getSetting('showBySumOfEstimate') == "true";
+    },
     getTimeboxes: function() {
         // Get the N most recent timeboxes in the current project
         // Sort by name

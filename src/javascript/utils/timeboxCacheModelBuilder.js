@@ -207,7 +207,7 @@ Ext.define('TimeboxCacheModelBuilder',{
                            endDateMs = this.getEndDateMs(),
                            planningDateMs = startDateMs + 86400000 * planningWindowShiftInDays,
                            minDuration = minDurationInHours * 3600000;  
-              
+                           
                        _.each(cache.data, function(dataArray, oid){
              
                             var included = this.isIncluded(dataArray,excludeAcceptedBeforeStart,minDuration,startDateMs,endDateMs);
