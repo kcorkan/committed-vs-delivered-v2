@@ -466,7 +466,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             detailOids = []; 
 
         var dataArray = _.reduce(timeboxes, function(arr, tb){
-            var cacheExportObjects = tb.getCacheDataForExport(this.getPlanningWindow(), this.getMinDurationInHours(),this.getExcludeAcceptedBeforeStart())
+            var cacheExportObjects = tb.getCacheDataForExport(this.getPlanningWindow(), this.getMinDurationInHours(),this.getExcludeAcceptedBeforeStart(),this.getContext())
             arr = arr.concat(cacheExportObjects);
         return arr;  
         },[],this); 
