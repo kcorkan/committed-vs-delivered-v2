@@ -28,6 +28,8 @@ Ext.define('TimeboxCacheModelBuilder',{
             Project: "Project",
             StartDate: "Timebox Start Date",
             EndDate: "Timebox End Date",
+            PlannedPoints: "Points Planned",
+            DeliveredPoints: "Points Delivered",
             Delivered: "is Delivered in Timebox",
             Planned: "is Planned",
             Included: "is Included in Dataset",
@@ -207,7 +209,7 @@ Ext.define('TimeboxCacheModelBuilder',{
                            endDateMs = this.getEndDateMs(),
                            planningDateMs = startDateMs + 86400000 * planningWindowShiftInDays,
                            minDuration = minDurationInHours * 3600000;  
-                           
+
                        _.each(cache.data, function(dataArray, oid){
              
                             var included = this.isIncluded(dataArray,excludeAcceptedBeforeStart,minDuration,startDateMs,endDateMs);
@@ -277,7 +279,7 @@ Ext.define('TimeboxCacheModelBuilder',{
                     getSnapCount: function(dataArray){
                         return dataArray[TimeboxCacheModelBuilder.COUNT_IDX];
                     },
-                    getCacheDataForExport: function(planningWindowShiftInDays, minDurationInHours,excludeAcceptedBeforeStart){
+                    getCacheDataForExport: function(planningWindowShiftInDays, minDurationInHours,excludeAcceptedBeforeStart,context){
                         var cache = this.getCacheObject(),
                             startDateMs = this.getStartDateMs(),
                             endDateMs = this.getEndDateMs(),
@@ -285,21 +287,28 @@ Ext.define('TimeboxCacheModelBuilder',{
                             minDuration = minDurationInHours * 3600000; 
                 
                         return _.map(cache.data, function(o,oid){
+                            var validTo = new Date(this.getLastDate(o)); 
+                            if (validTo > new Date()){
+                                validTo = new Date();  
+                            }
+                            
                             return {
                                 ObjectID: oid,
                                 FormattedID: this.getFormattedID(o),
-                                ValidFrom: Rally.util.DateTime.toIsoString(new Date(this.getFirstDate(o))),
-                                ValidTo: Rally.util.DateTime.toIsoString(new Date(this.getLastDate(o))),
-                                DeliveredDate: this.getDeliveredDate(o) ? Rally.util.DateTime.toIsoString(new Date(this.getDeliveredDate(o))) : "",
-                                SnapCount: this.getSnapCount(0),
+                                ValidFrom: Rally.util.DateTime.formatWithDefaultDateTime(new Date(this.getFirstDate(o)),context),
+                                ValidTo: Rally.util.DateTime.formatWithDefaultDateTime(validTo,context),
+                                DeliveredDate: this.getDeliveredDate(o) ? Rally.util.DateTime.formatWithDefaultDateTime(new Date(this.getDeliveredDate(o))) : "",
+                                SnapCount: this.getSnapCount(o),
                                 TimeboxName: this.get('Name'),
                                 Project: this.get('Project').Name,
-                                StartDate: Rally.util.DateTime.toIsoString(new Date(startDateMs)),
-                                EndDate: Rally.util.DateTime.toIsoString(new Date(endDateMs)),
+                                StartDate: Rally.util.DateTime.formatWithDefaultDateTime(new Date(startDateMs),context),
+                                EndDate: Rally.util.DateTime.formatWithDefaultDateTime(new Date(endDateMs),context),
+                                PlannedPoints: o[TimeboxCacheModelBuilder.PLANNED_POINTS_IDX],
+                                DeliveredPoints: o[TimeboxCacheModelBuilder.DELIVERED_POINTS_IDX],
                                 Delivered: this.isDataDelivered(o,endDateMs),
                                 Planned: this.isDataPlanned(o,planningDateMs),
                                 Included: this.isIncluded(o,excludeAcceptedBeforeStart,minDuration,startDateMs,endDateMs),
-                                PlanningDate: Rally.util.DateTime.toIsoString(new Date(planningDateMs)),
+                                PlanningDate: Rally.util.DateTime.formatWithDefaultDateTime(new Date(planningDateMs),context),
                             }
                         },this);
                     }
