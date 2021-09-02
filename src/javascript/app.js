@@ -45,8 +45,8 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             excludeAcceptedBeforeStart: false,
             showBySumOfEstimate: true,
             minDurationInHours: 24,
-            showCacheManagement: false
-
+            showCacheManagement: false,
+            showRolloverChart: true
         }
     },
 
@@ -168,19 +168,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         var status = this._getNewStatus();
         var updatedTimeboxes = [];
         var promises = [];
-        // for (var i=0; i<timeboxes.length; i++){
-        //     if (timeboxes[i].clearCache()){
-        //         promises.push(this._saveRecord(timeboxes[i],status,key));
-        //     }
-        // }
-        // if (promises.length > 0){
-        //     Deft.Promise.all(promises).then({
-        //         success: function(){
-        //             this.setLoading(false);   
-        //         },
-        //         scope: this 
-        //     });
-        // }
+        
         var timeboxesToUpdate = [];
         for (var i=0; i<timeboxes.length; i++){
             if (timeboxes[i].clearCache(this.getHistorcalCacheField(),force)){
@@ -805,13 +793,20 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                 if (timeboxGroups.length === 0){
                     this._showAppMessage("No timeboxes found for the currently selected project.");
                 } else {
-                    this._showChart(timeboxGroups);
+                    if (this.getShowRollover()){
+                        this._showRolloverChart(timeboxGroups);
+                    } else {
+                        this._showChart(timeboxGroups);
+                    }
                     if (this.getSaveCacheToTimebox()){
                         this.persistCache(this.getHistorcalCacheField());
                     }
                 }
             }
         });
+    },
+    getShowRollover: function(){
+        return this.getSetting('showRolloverChart') === true || this.getSetting('showRolloverChart') === "true";
     },
     _showChart: function(){
         var chartArea = this.down('#grid-area')
@@ -822,6 +817,17 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         
         chartArea.add(chartConfig);
     },
+    _showRolloverChart: function(){
+        var chartArea = this.down('#grid-area')
+        chartArea.removeAll();
+        this.down('#cache-management-controls') && this.down('#cache-management-controls').hide();
+
+        var chartData = RolloverCalculator.getChartData(this.timeboxGroups);
+        var chartConfig = RolloverCalculator.getChartConfig(chartData);
+        
+        chartArea.add(chartConfig);
+    },
+
     _showCacheManagement: function(){
         if (!this.getShowCacheManagement()){
             return;
