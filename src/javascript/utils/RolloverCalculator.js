@@ -10,16 +10,16 @@ Ext.define('RolloverCalculator', {
             timeboxNames = []; 
             for (var i=0; i<timeboxGroups.length; i++){
                 var timeboxes = timeboxGroups[i];
-                timeboxNames.push(timeboxes[0].get('Name'));
+                timeboxNames.unshift(timeboxes[0].get('Name'));
                 for (var j=0; j<timeboxes.length; j++){
                     var timebox = timeboxes[j],
                         cache = timebox.getCacheObject(); 
                         artifactHash = _.reduce(cache.data, function(hash, info,oid){
-                            
+                            console.log('tbname',timebox.get('Name'))
                             if (!hash[oid]){
                                 hash[oid] = [];
                             } 
-                            hash[oid].push(timebox.get('Name'));
+                            hash[oid].unshift(timebox.get('Name'));
                             return hash; 
                         },artifactHash);            
                 } //end timeboxes 
@@ -76,6 +76,7 @@ Ext.define('RolloverCalculator', {
     
             for (var i=0; i<timeboxNames.length; i++){
                 var tbName = timeboxNames[i];
+                console.log(tbName)
                 for (var j=0;j<chartData.series.length; j++){ chartData.series[j].data[i] = 0; }
                 _.each(artifactHash, function(timeboxes,artifactOid){
                     var idx = timeboxes.indexOf(tbName);
