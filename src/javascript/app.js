@@ -794,7 +794,14 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                     this._showAppMessage("No timeboxes found for the currently selected project.");
                 } else {
                     if (this.getShowRollover()){
-                        this._showRolloverChart(timeboxGroups);
+                        var status = this._getNewStatus();
+                        RolloverCalculator.fetchRolledOverStories(timeboxGroups, status, this.getContext().getDataContext()).then({
+                            success: function(timeboxGroups){
+                                this._showRolloverChart(timeboxGroups);
+                            },
+                            scope: this 
+                        });
+                        //this._showRolloverChart(timeboxGroups);
                     } else {
                         this._showChart(timeboxGroups);
                     }

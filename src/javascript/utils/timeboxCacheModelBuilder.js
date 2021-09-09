@@ -108,13 +108,21 @@ Ext.define('TimeboxCacheModelBuilder',{
                                 data: {}
                             };
                         var startDateMs = this.getStartDateMs();
+                        
                         _.each(snapArraysByOid, function(snapArray,snapOid){
-                         
+                            
                             var snaps = _.sortBy(snapArray, function(s){ 
                                 return new Date(s.data._ValidFrom).getTime();
                             }).filter(function(snap){
                                 return !(new Date(snap.data._ValidTo).getTime() <= startDateMs);
                             });
+
+                            if (snaps[0] && snaps[0].data['FormattedID'] == "S182180"){
+                                for (var i=0; i< snaps.length; i++){
+                                    console.log('snaps',i, JSON.stringify(snaps[i].data))
+                                }
+                            }
+
                             if (snaps.length > 0){
 
                                 var firstDayInRange = snaps[0].data._ValidFrom,
@@ -124,6 +132,8 @@ Ext.define('TimeboxCacheModelBuilder',{
                                     validFromPoints = snaps[0][pointsField],
                                     validToPoints = lastSnap[pointsField];
                                 var cacheData = [];
+
+                                
 
                                 cacheData[TimeboxCacheModelBuilder.VALID_FROM_IDX] = Date.parse(firstDayInRange);
                                 cacheData[TimeboxCacheModelBuilder.VALID_TO_IDX] = Date.parse(lastDayInRange);
@@ -143,6 +153,17 @@ Ext.define('TimeboxCacheModelBuilder',{
                             this.set(cacheField,JSON.stringify(cache));
                             this.__isDirty = true;
                         }
+                    },
+                    saveRollovers: function(snaps){
+                        var rollovers = [];
+                        console.log ("rollovers snaps",snaps);
+                        for (var i=0; i<snaps.length; i++){
+                            rollovers.push(snap.ObjectID);
+                        }
+                        var cacheObj = this.getCacheObject();
+                        cacheObj.rollovers = rollovers;  
+                        console.log ("rollovers",cacheObj.rollovers);
+                        this.set(this.historicalCacheField,cacheObj);
                     },
                     getCacheObject: function(){
                         return cache = this.get(this.historicalCacheField) || {};
