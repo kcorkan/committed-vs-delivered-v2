@@ -835,6 +835,14 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             scope: this,
             success: function(timeboxGroups) {
                 this.setLoading(false);
+                var orderIndex = timeboxGroups.length; 
+                for (var j=0; j< timeboxGroups.length; j++){
+                    for (var i=0; i<timeboxGroups[j].length; i++){
+                        timeboxGroups[j][i].set('orderIndex',orderIndex)
+                    }
+                    orderIndex--;  
+                }
+
                 this.timeboxGroups = timeboxGroups;
                 if (timeboxGroups.length === 0){
                     this._showAppMessage("No timeboxes found for the currently selected project.");

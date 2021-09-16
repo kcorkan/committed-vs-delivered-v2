@@ -57,9 +57,12 @@ Ext.define('TimeboxCacheModelBuilder',{
                     name: historicalCacheFieldName,
                     defaultValue: null,
                     type: 'object'
+                 },{
+                     name: 'orderIndex',
+                     defaultValue: 0,
+                     type: 'integer'
                  });    
                 //}
-
 
                 
                 var new_model = Ext.define(newModelName, {
@@ -180,21 +183,61 @@ Ext.define('TimeboxCacheModelBuilder',{
                             rollovers: rollovers
                         }; 
                     },
-                    addRollover: function(objectID,prevTimebox,snap){
+                    getRollovers: function(useFormattedID){
+                        var cacheObj = this.getCacheObject();
+
+                        return _.reduce(cacheObj.data, function(arr,v,k){
+                            if (v[TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] > 0){
+                                if (useFormattedID){
+                                    arr.push(v[TimeboxCacheModelBuilder.FID_IDX]);
+                                } else {
+                                    arr.push(k);
+                                }
+                            } 
+                            return arr; 
+                        },[]);   
+                    },
+                    getRolloverObjectCountHash: function(useFormattedID){
+                        var cacheObj = this.getCacheObject();
+                        var hash = {};
+                        _.each(cacheObj.data, function(v,k){
+                            var oid = k; 
+                            if (useFormattedID){
+                                oid = v[TimeboxCacheModelBuilder.FID_IDX];
+                            }
+                            hash[oid] = v[TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] || 0;  
+                        });
+                        return hash;  
+                    },
+                    getRolloverCount: function(idx){
+                        var cacheObj = this.getCacheObject();
+                        console.log('getRolloverCount',cacheObj);
+                        var rolloverCount = 0;
+
+                        _.each(cacheObj.data, function(v,k){
+                            var count = v[TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] || 0;
+                            if (count === idx){
+                                rolloverCount++;
+                            }
+                        });
+                        console.log('rolloverCount',idx, rolloverCount);
+                        return rolloverCount;             
+                    },
+                    addRollover: function(objectID,rolloverCount){
                         var cacheObj = this.getCacheObject();
                         if (!cacheObj.data){
                             console.log('no cache object', this.get('Name'), this.get('ObjectID'));
                             return;
                         }
                         if (!cacheObj.data[objectID]){
-                            console.log('objectID not found in iteration',this.get('Name'), this.get('StartDate'),this.get('EndDate'),objectID,snap);
+                            console.log('objectID not found in iteration',this.get('Name'), this.get('StartDate'),this.get('EndDate'),objectID);
                             return;
                         } 
-                        if (!cacheObj.data[objectID][TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX]){
-                            cacheObj.data[objectID][TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] = 0;
-                        }
-                        cacheObj.data[objectID][TimeboxCacheModelBuilder.ROLLOVER_IDX] = prevTimebox;
-                        cacheObj.data[objectID][TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX]++;
+                        // if (!cacheObj.data[objectID][TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX]){
+                        //     cacheObj.data[objectID][TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] = 0;
+                        // }
+                        // cacheObj.data[objectID][TimeboxCacheModelBuilder.ROLLOVER_IDX] = prevTimebox;
+                        cacheObj.data[objectID][TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] = rolloverCount;
                         this.set(this.historicalCacheField,cacheObj);
                     },
                     getCacheObject: function(){

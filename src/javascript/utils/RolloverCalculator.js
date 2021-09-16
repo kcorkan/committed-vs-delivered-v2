@@ -4,32 +4,7 @@ Ext.define('RolloverCalculator', {
         SERIES_COLOR: ["#66b3ff","#79ff4d","#ffb84d","#ff1a75","#00e68a","#ac39ac"],
         Y_AXIS_TITLE: "Story Count",
         CHART_TITLE: "Rolled Over Stories",
-        getArtifactHash: function(timeboxGroups){
-            var artifactHash = {};
-            for (var i=timeboxGroups.length-1; i>0; i--){
-                var timeboxes = timeboxGroups[i];
-                for (var j=0; j<timeboxes.length; j++){
-                    var timebox = timeboxes[j],
-                        cache = timebox.getCacheObject(); 
-                        artifactHash = _.reduce(cache.data, function(hash, info,oid){
-                            var id = info[TimeboxCacheModelBuilder.FID_IDX];
-                            if (!hash[id]){
-                                hash[id] = {};
-                            } 
-                            if (!hash[id][timebox.get('Name')]){
-                                hash[id][timebox.get('Name')] = 0; //RolloverCalculator._initArray(timeboxGroups.length,[]);
-                            } 
-                            if (_.contains(cache.rollovers, id)){
-                                hash[id][timebox.get('Name')]++;
-                            }
-                            return hash; 
-                        },artifactHash);            
-                } //end timeboxes 
-
-            } //end timeboxGroups 
-            console.log('artifactHash',artifactHash)  
-            return artifactHash;  
-        },
+    
         _initArray: function(len, initValue){
             var arr = [];
             for (var i=0;i<len;i++){ arr[i] = initValue }
@@ -42,15 +17,14 @@ Ext.define('RolloverCalculator', {
             }
             return timeboxes;
         },
-        getTimeboxDataHash: function(timeboxGroups,useFormattedID){
+
+        getTimeboxDataHash: function(timeboxGroups, useFormattedID){
             var timeboxDataHash = {};
             useFormattedID = useFormattedID || false; 
             var maxRollover = timeboxGroups.length-1; 
-            var prevName = null,
-                currName = null; 
+            var currName = null; 
             
-            for (var i=timeboxGroups.length-1; i>0; i--){
-                prevName = currName; 
+            for (var i=timeboxGroups.length-1; i>=0; i--){
                 currName = timeboxGroups[i][0].get('Name');
                 if (!timeboxDataHash[currName]){
                     timeboxDataHash[currName]={
@@ -59,15 +33,15 @@ Ext.define('RolloverCalculator', {
                     };
                 }
                 for (var j=0; j<timeboxGroups[i].length; j++){
-                    var rolloverData = timeboxGroups[i][j].getRolloverData(useFormattedID);
-                    console.log('rooloverData',rolloverData)
-                    timeboxDataHash[currName].rolloverCount[0] += rolloverData.zeroCount; 
-                    for (var k=0; k<rolloverData.rollovers.length; k++){
-                        var prevRollover = timeboxDataHash[prevName].rolloverOids[rolloverData.rollovers[k]] || 0;
-                        console.log('prevRollover',prevRollover)
-                        timeboxDataHash[currName].rolloverOids[rolloverData.rollovers[k]] = prevRollover + 1;
-                        timeboxDataHash[currName].rolloverCount[prevRollover+1]++; 
-                    }
+                    var timebox = timeboxGroups[i][j];
+                    var rollovers = timebox.getRolloverObjectCountHash(useFormattedID);
+                    timeboxDataHash[currName].rolloverOids = _.reduce(rollovers, function(hsh,v,k){
+                        timeboxDataHash[currName].rolloverCount[v]++;
+                        if (v>0){
+                            hsh[k]=v;
+                        }
+                        return hsh; 
+                    }, timeboxDataHash[currName].rolloverOids);
                 }
             }
 
@@ -122,7 +96,7 @@ Ext.define('RolloverCalculator', {
                     stack: 'rollover'
                 }]
             }
-    
+
                for (var j=0;j<chartData.series.length; j++){ 
                     for (var i=0; i<timeboxNames.length; i++){
                         var tbName = timeboxNames[i];
@@ -243,87 +217,88 @@ Ext.define('RolloverCalculator', {
     
             Deft.Promise.all(promises).then({
                 success: function(results){
-                    RolloverCalculator.processSnaps(results, timeboxGroups);
-                    status.done();
-                    deferred.resolve(timeboxGroups);
+                    var lastIterationRollovers = results[results.length - 1];
+                    //RolloverCalculator.fetchLastIterationRollovers(lastIterationRollovers).then({
+                      //  success: function(lastIterationRolloverResults){
+                            RolloverCalculator.processSnaps(results, timeboxGroups);
+                            status.done();
+                            deferred.resolve(timeboxGroups);
+                        //}.
+                        //failure:
+                    //})
+                    
                     
                 },
                 failure: function(msg){},
                 scope: this 
-            });   
+            });  
             return deferred.promise; 
         },
-    
-        processSnaps: function(snapshots, timeboxGroups){
-            console.log('snapshots', snapshots.length);
-            var snapshots = _.flatten(snapshots);
-            console.log('snapshots', snapshots.length);
+        processSnaps: function(snapshotsResults, timeboxGroups){
+            console.log('snapshots', snapshotsResults.length);
+            var startDates = [];
             var iterationMap = _.reduce(timeboxGroups, function(map,tb){
                 for (var i=0; i<tb.length; i++){
                     map[tb[i].get('ObjectID')] = tb[i];
                 }
                 return map;  
             },{});
-            console.log('iterationMap',iterationMap);
-            var oids = {},
-                exportMap = {};
 
-            _.each(snapshots, function(b) {
-                var oid = b.get("ObjectID"),
-                    fid = b.get("FormattedID"),
-                    iteration = b.get("Iteration"),
-                    prevIteration = b.get("_PreviousValues.Iteration"),
-                    validFrom = Date.parse(b.get("_ValidFrom")),
-                    validTo = Date.parse(b.get('_ValidTo')),
+            
+            console.log('iterationMap',iterationMap, startDates);
+            itemRollovers = {};
+            timeboxRollovers = {};
+            for (var x=0; x<snapshotsResults.length; x++){
+                var snapshots = snapshotsResults[x];
+                console.log('snapshots.length',snapshots.length)
+                for (var y=0; y<snapshots.length; y++){
+                    var snap = snapshots[y];
+                    var oid = snap.get("ObjectID"),
+                    iteration = snap.get("Iteration"),
+                    prevIteration = snap.get("_PreviousValues.Iteration"),
+                    validFrom = Date.parse(snap.get("_ValidFrom")),
+                    validTo = Date.parse(snap.get('_ValidTo')),
                     prevIterationStartDate = iterationMap[prevIteration].getStartDateMs(),
-                    timebox = iterationMap[iteration],
-                    iterationEndDate = Date.parse(timebox.get('EndDate'));
-                if (prevIteration && iteration && validTo > prevIterationStartDate && validFrom < iterationEndDate ){  //&& !(prevIterationStartDate > validFrom))
-                    console.log('roolover vound')
-                    if (timebox){
-                        timebox.addRollover(oid,prevIteration,b);
+                    currentTimebox = iterationMap[iteration],
+                    iterationEndDate = Date.parse(currentTimebox.get('EndDate'));
+                    console.log(currentTimebox.get('Name'))
+                    if (prevIteration && iteration && validTo > prevIterationStartDate && validFrom < iterationEndDate ){  //&& !(prevIterationStartDate > validFrom))
+                        if (!itemRollovers[oid]){
+                            itemRollovers[oid] = [];
+                        }
+                        if (!_.contains(itemRollovers[oid],iteration)){
+                            itemRollovers[oid].push(iteration);
+                        }
+                        if (!_.contains(itemRollovers[oid],prevIteration)){
+                            itemRollovers[oid].push(prevIteration);
+                        }
+                    }                     
+                }
+            }
+            console.log('itemRollovers',itemRollovers)
+          
+            //This assumes iterations are in descending order 
+            var currIndex = null,
+                prevIndex = null; 
+            _.each(itemRollovers, function(iterations,oid){
+                var rolloverCount = 0; 
+                for (var i=iterations.length-1; i>0; i--){
+                    var timebox = iterationMap[iterations[i]];
+                    prevIndex = currIndex;  
+                    currIndex = timebox && timebox.get('orderIndex') || 0; 
+                    if (currIndex > 0 && (currIndex - 1 === prevIndex) || prevIndex === null){
+                        rolloverCount++;
+                        timebox.addRollover(oid,rolloverCount);
+                        console.log('addRollover',oid,rolloverCount)
                     } else {
-                        console.log("NO timebox found for " + iteration);
+                        rolloverCount = 0;  
                     }
                 }
-                    // if (!oids[oid]) {
-                    //     oids[oid] = 1;
-                    //     var k = {
-                    //         FormattedID: "",
-                    //         Iteration: "",
-                    //         RolledOverCount: 0
-                    //     };
+            });
 
-                    //     k.FormattedID = fid;
-                    //     //k.Iteration = a;
-                    //     k.RolledOverCount = 1;
-                    //     k[iteration] = 1;
-                    //     exportMap[oid]=k;
-                    
-                            
-                    // } else {
-                    //     oids[oid] += 1;
-                    //     var k = exportMap[oid];
-                    //     k[iteration] = 1;  //we don't want to increment if the iteration is the same (k[iteration] || 0) + 1;
-                    //     k.RolledOverCount = k.RolledOverCount + 1;
-                    //     exportMap[oid] = k;
-                    // }
-            }, this);
 
-            // var snapsByTimeboxOid = _.reduce(snapshots, function(hash,snap){
-            //     var tbOid = snap.get('Iteration').toString();
-            //     console.log('tboid',tbOid, snap.data)
-            //     if (!hash[tbOid]){
-            //         hash[tbOid] = [];
-            //     }
-               
-            //     hash[tbOid].push(snap.data);
-            //     console.log('hash',hash[tbOid]);
-            //     return hash; 
-            // },{});
-            // console.log(snapsByTimeboxOid);
-            // return snapsByTimeboxOid;
         },
+       
         fetchSnapshots: function(filters, status,dataContext){
             var key = 'Loading rolled over stories';
             var fields = ['Iteration', '_ValidFrom', '_ValidTo', 'ObjectID','_PreviousValues.Iteration','FormattedID'];
