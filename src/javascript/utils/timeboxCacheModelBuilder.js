@@ -11,7 +11,9 @@ Ext.define('TimeboxCacheModelBuilder',{
     DELIVERED_POINTS_IDX: 4,
     FID_IDX: 5, 
     COUNT_IDX: 6,
-
+    ROLLOVER_COUNT_IDX: 7,
+    ROLLOVER_IDX: 8,
+   
     VIRTUAL_CACHE_FIELD_NAME: "__unpersistedCache",
    
     getExportFieldsHash: function(fields){
@@ -142,6 +144,7 @@ Ext.define('TimeboxCacheModelBuilder',{
                                 cacheData[TimeboxCacheModelBuilder.DELIVERED_POINTS_IDX] = lastSnap[pointsField] || 0;
                                 cacheData[TimeboxCacheModelBuilder.COUNT_IDX] = snaps.length;
                                 cacheData[TimeboxCacheModelBuilder.FID_IDX] = snaps[0].data['FormattedID'];
+                                cacheData[TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] = 0;
                                 
                                 cache.data[snapOid] = cacheData;
                             } 
@@ -154,15 +157,44 @@ Ext.define('TimeboxCacheModelBuilder',{
                             this.__isDirty = true;
                         }
                     },
-                    saveRollovers: function(snaps){
-                        var rollovers = [];
-                        console.log ("rollovers snaps",snaps);
-                        for (var i=0; i<snaps.length; i++){
-                            rollovers.push(snap.ObjectID);
-                        }
+                    getRolloverData: function(useFormattedID){
                         var cacheObj = this.getCacheObject();
-                        cacheObj.rollovers = rollovers;  
-                        console.log ("rollovers",cacheObj.rollovers);
+                        console.log('getRolloverData',cacheObj);
+                        var count = 0;
+                        var rollovers = []; 
+
+                        _.each(cacheObj.data, function(v,k){
+                            if (v[TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] > 0){
+                                if (useFormattedID){
+                                    rollovers.push(v[TimeboxCacheModelBuilder.FID_IDX]);
+                                } else {
+                                    rollovers.push(k);
+                                }
+                                
+                            } else {
+                                count++;
+                            }
+                        });
+                        return {
+                            zeroCount: count,
+                            rollovers: rollovers
+                        }; 
+                    },
+                    addRollover: function(objectID,prevTimebox,snap){
+                        var cacheObj = this.getCacheObject();
+                        if (!cacheObj.data){
+                            console.log('no cache object', this.get('Name'), this.get('ObjectID'));
+                            return;
+                        }
+                        if (!cacheObj.data[objectID]){
+                            console.log('objectID not found in iteration',this.get('Name'), this.get('StartDate'),this.get('EndDate'),objectID,snap);
+                            return;
+                        } 
+                        if (!cacheObj.data[objectID][TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX]){
+                            cacheObj.data[objectID][TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] = 0;
+                        }
+                        cacheObj.data[objectID][TimeboxCacheModelBuilder.ROLLOVER_IDX] = prevTimebox;
+                        cacheObj.data[objectID][TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX]++;
                         this.set(this.historicalCacheField,cacheObj);
                     },
                     getCacheObject: function(){

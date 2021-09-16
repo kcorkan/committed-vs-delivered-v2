@@ -385,9 +385,10 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
 
         var exportMenu = [{
             text: 'Export to CSV...',
-            handler: this.exportCacheData,
+            handler: this.exportData,
             scope: this
-            }];
+        }];
+
         if (this.getShowControls()){
         
             controlsArea.add({
@@ -448,6 +449,51 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     },
     getPlanningWindow: function(){
         return this.getSetting('planningWindow') || 0;
+    },
+    exportRolloverData: function(){
+        var timeboxDataHash = RolloverCalculator.getTimeboxDataHash(this.timeboxGroups, true);
+        
+        var timeboxNames = RolloverCalculator.getTimeboxNamesAsc(this.timeboxGroups); 
+
+        var rows = {};
+        _.each(timeboxDataHash, function(tbData, tbName){
+            _.each(tbData.rolloverOids, function(count, oid){
+                if (!rows[oid]){
+                    rows[oid] = {
+                        FormattedID: oid,
+                        Iteration: "",
+                    }
+                    for (var i=0; i<timeboxNames; i++){
+                        rows[oid][timeboxNames[i]] = "";
+                    }
+                }
+                rows[oid][tbName] = count;
+            });
+        });
+
+        var dataArray = _.values(rows);
+
+        var exportFieldsHash = {
+            "FormattedID": "Formatted ID",
+            "Iteration": "Iteration"
+        };
+        for (var i=0; i<timeboxNames.length; i++){
+            exportFieldsHash[timeboxNames[i]] = timeboxNames[i];
+        }
+
+        if (dataArray.length > 0){      
+            var fileName = Ext.String.format("storyRollover_{0}.csv",Rally.util.DateTime.format(new Date(),"Ymd_His"));
+            var csvText = CArABU.technicalservices.FileUtilities.convertDataArrayToCSVText(dataArray, exportFieldsHash);
+            CArABU.technicalservices.FileUtilities.saveCSVToFile(csvText, fileName);
+        }
+
+    },
+    exportData: function(){
+        if (this.getShowRollover()){
+            this.exportRolloverData();
+        } else {
+            this.exportCacheData();
+        }
     },
     exportCacheData: function(fields){
         var timeboxes = this.timeboxes,

@@ -35,6 +35,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                
                 this.fetchSnapshots(filters, status).then({
                     success: function(snapshots){
+                        console.log('processSnaps',snapshots)
                         this.processSnapshots(snapshots, timeboxGroup,persistedCacheField);
                         deferred.resolve(timeboxGroup);
                     },
@@ -91,7 +92,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                     oids.push(tbOid);
                 } else {
                     var persistedCache = timebox.loadCache(persistedCacheField);
-                    if (!persistedCache){
+                    if (_.isEmpty(persistedCache) || !persistedCache){
                         oids.push(tbOid);
                     }
                 }
