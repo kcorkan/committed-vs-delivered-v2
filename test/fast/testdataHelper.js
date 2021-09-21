@@ -1,3 +1,122 @@
+//iterations 95,96,97,98,99,100,101,102,103,104,105
+var lastRolloverData_1 = {
+    timeboxStartDate: "2021-07-03T00:00:00Z",
+    timeboxEndDate:"2021-07-17T00:00:00Z",
+    timeboxOidStart: 521511480168,
+    snaps: [{
+        "_ValidFrom": "2021-07-01T14:52:22.634Z",
+        "_ValidTo": "2021-07-02T13:48:30.148Z",
+        "ObjectID": 1,
+        "Iteration": {
+            "ObjectID": 100,
+            "Name": "Week 100",
+            "StartDate": "2021-06-01T00:00:00.000Z",
+            "EndDate": "2021-06-08T23:59:59.000Z"
+        },
+        "_PreviousValues": {
+            "Iteration": {
+                "ObjectID": 99,
+                "Name": "Week 99",
+                "StartDate": "2021-05-23T00:00:00.000Z",
+                "EndDate": "2021-05-30T23:59:59.000Z"
+        }},
+
+        "FormattedID": "S1"
+    },{
+        "_ValidFrom": "2021-07-01T14:52:22.634Z",
+        "_ValidTo": "2021-07-02T13:48:30.148Z",
+        "ObjectID": 1,
+        "Iteration": {
+            "ObjectID": 99,
+            "Name": "Week 99",
+            "StartDate": "2021-05-23T00:00:00.000Z",
+            "EndDate": "2021-05-30T23:59:59.000Z"
+        },
+        "_PreviousValues.Iteration": {
+            "ObjectID": 98,
+            "Name": "Week 98",
+            "StartDate": "2021-05-15T00:00:00.000Z",
+            "EndDate": "2021-05-22T23:59:59.000Z"
+        },
+        "FormattedID": "S1"
+    },{
+        "_ValidFrom": "2021-07-01T14:52:22.634Z",
+        "_ValidTo": "2021-07-02T13:48:30.148Z",
+        "ObjectID": 1,
+        "Iteration": {
+            "ObjectID": 98,
+            "Name": "Week 98",
+            "StartDate": "2021-05-15T00:00:00.000Z",
+            "EndDate": "2021-05-22T23:59:59.000Z"
+        },
+        "_PreviousValues.Iteration": {
+            "Iteration":{
+                "ObjectID": 97,
+                "Name": "Week 97",
+                "StartDate": "2021-05-07T00:00:00.000Z",
+                "EndDate": "2021-05-14T23:59:59.000Z"
+        }},
+        "FormattedID": "S1"
+    },{
+        "_ValidFrom": "2021-07-01T14:52:22.634Z",
+        "_ValidTo": "2021-07-02T13:48:30.148Z",
+        "ObjectID": 1,
+        "Iteration":{
+            "ObjectID": 97,
+            "Name": "Week 97",
+            "StartDate": "2021-05-07T00:00:00.000Z",
+            "EndDate": "2021-05-14T23:59:59.000Z"
+        },
+        "_PreviousValues.Iteration": {
+            "Iteration":{
+                "ObjectID": 96,
+                "Name": "Week 96",
+                "StartDate": "2021-04-30T00:00:00.000Z",
+                "EndDate": "2021-05-06T23:59:59.000Z"
+            }
+        },
+        "FormattedID": "S1"
+    },{
+        "_ValidFrom": "2021-07-01T14:52:22.634Z",
+        "_ValidTo": "2021-07-02T13:48:30.148Z",
+        "ObjectID": 1,
+        "Iteration":{
+            "ObjectID": 96,
+            "Name": "Week 96",
+            "StartDate": "2021-04-30T00:00:00.000Z",
+            "EndDate": "2021-05-06T23:59:59.000Z"
+        },
+        "_PreviousValues.Iteration": {
+            "Iteration":{
+                "ObjectID": 95,
+                "Name": "Week 95",
+                "StartDate": "2021-04-22T00:00:00.000Z",
+                "EndDate": "2021-04-29T23:59:59.000Z"
+            }
+        },
+        "FormattedID": "S1"
+    },{
+        "_ValidFrom": "2021-07-01T14:52:22.634Z",
+        "_ValidTo": "2021-07-02T13:48:30.148Z",
+        "ObjectID": 1,
+        "Iteration":{
+            "ObjectID": 95,
+            "Name": "Week 95",
+            "StartDate": "2021-04-22T00:00:00.000Z",
+            "EndDate": "2021-04-29T23:59:59.000Z"
+        },
+        "_PreviousValues.Iteration": {
+            "Iteration":{
+                "ObjectID": 94,
+                "Name": "Week 94",
+                "StartDate": "2021-04-14T00:00:00.000Z",
+                "EndDate": "2021-04-21T23:59:59.000Z"
+            }
+        },
+        "FormattedID": "S1"
+     }]
+};
+
 
 var acceptedBeforeStartData = {
     timeboxStartDate: "2021-07-03T00:00:00Z",
