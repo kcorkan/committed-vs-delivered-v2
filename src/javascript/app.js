@@ -678,9 +678,9 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         // Get timeboxes by name from all child projects
     
         var timeboxFilterProperty = this.timeboxEndDateField;
-        if (this.getSetting('currentTimebox')) {
-            timeboxFilterProperty = this.timeboxStartDateField;
-        }
+        // if (this.getSetting('currentTimebox')) {
+        //     timeboxFilterProperty = this.timeboxStartDateField;
+        // }
         return Ext.create('Rally.data.wsapi.Store', {
             model: this.timeboxModel || this.timeboxType,
             autoLoad: false,
