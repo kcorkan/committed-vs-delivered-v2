@@ -363,7 +363,7 @@ Ext.define('RolloverCalculator', {
                     }
                 }
                 console.log('snap',snap.getData());
-                var startDateMs = iterationMap[iterationId].startDateMs || iterationMap[iterationId].getStartDateMs();
+                var startDateMs = iterationMap[prevIterationId].startDateMs || iterationMap[prevIterationId].getStartDateMs();
                 var endDateMs = iterationMap[iterationId].endDateMs || iterationMap[iterationId].getEndDateMs();
                 
                 console.log('validTo',validTo,iterationMap[iterationId],iterationMap[iterationId].startDateMs);
