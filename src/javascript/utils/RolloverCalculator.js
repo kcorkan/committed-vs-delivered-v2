@@ -178,7 +178,7 @@ Ext.define('RolloverCalculator', {
             var promises = []; 
            
             for (var i=0; i<timeboxGroups.length-1 ; i++ ){
-                console.log(timeboxGroups[i][0].get('StartDate'))
+
                 var prevStartDate = null,
                     currentEndDate = null;
                 var previousTimeboxes = _.map(timeboxGroups[i+1], function(tb){
@@ -191,7 +191,6 @@ Ext.define('RolloverCalculator', {
                     return tb.get('ObjectID');
                 });
         
-                console.log('previous', prevStartDate, 'current', currentEndDate)
                 var prevFilter = {
                     property: '_PreviousValues.Iteration',
                     operator: ">",
@@ -230,7 +229,6 @@ Ext.define('RolloverCalculator', {
                     var lastIterationRollovers = results[results.length - 1];
                     RolloverCalculator.fetchLastIterationRollovers(status,lastIterationRollovers,lastIterationStartDate,dataContext).then({
                         success: function(lastIterationRolloverResults){
-                            console.log('lastIterationRolloverResults',lastIterationRolloverResults);
                             //results.push(lastIterationRolloverResults);
                             //RolloverCalculator.processSnaps(results, lastIterationRolloverResults, timeboxGroups);
                             var rolloverHash = RolloverCalculator.buildItemRolloverHash(results, lastIterationRolloverResults,timeboxGroups);
@@ -247,70 +245,70 @@ Ext.define('RolloverCalculator', {
             });  
             return deferred.promise; 
         },
-        processSnaps: function(snapshotsResults, lastSnapshotResults, timeboxGroups){
-            console.log('snapshots', snapshotsResults.length);
-            var startDates = [];
-            var iterationMap = _.reduce(timeboxGroups, function(map,tb){
-                for (var i=0; i<tb.length; i++){
-                    map[tb[i].get('ObjectID')] = tb[i];
-                }
-                return map;  
-            },{});
+        // processSnaps: function(snapshotsResults, lastSnapshotResults, timeboxGroups){
+        //     console.log('snapshots', snapshotsResults.length);
+        //     var startDates = [];
+        //     var iterationMap = _.reduce(timeboxGroups, function(map,tb){
+        //         for (var i=0; i<tb.length; i++){
+        //             map[tb[i].get('ObjectID')] = tb[i];
+        //         }
+        //         return map;  
+        //     },{});
 
             
-            console.log('iterationMap',iterationMap, startDates);
-            itemRollovers = {};
-            timeboxRollovers = {};
-            for (var x=0; x<snapshotsResults.length; x++){
-                var snapshots = snapshotsResults[x];
-                console.log('snapshots.length',snapshots.length)
-                for (var y=0; y<snapshots.length; y++){
-                    var snap = snapshots[y];
-                    var oid = snap.get("ObjectID"),
-                    iteration = snap.get("Iteration"),
-                    prevIteration = snap.get("_PreviousValues.Iteration"),
-                    validFrom = Date.parse(snap.get("_ValidFrom")),
-                    validTo = Date.parse(snap.get('_ValidTo')),
-                    prevIterationStartDate = iterationMap[prevIteration].getStartDateMs(),
-                    currentTimebox = iterationMap[iteration],
-                    iterationEndDate = Date.parse(currentTimebox.get('EndDate'));
-                    console.log(currentTimebox.get('Name'))
-                    if (prevIteration && iteration && validTo > prevIterationStartDate && validFrom < iterationEndDate ){  //&& !(prevIterationStartDate > validFrom))
-                        if (!itemRollovers[oid]){
-                            itemRollovers[oid] = [];
-                        }
-                        if (!_.contains(itemRollovers[oid],iteration)){
-                            itemRollovers[oid].push(iteration);
-                        }
-                        if (!_.contains(itemRollovers[oid],prevIteration)){
-                            itemRollovers[oid].push(prevIteration);
-                        }
-                    }                     
-                }
-            }
-            console.log('itemRollovers',itemRollovers)
+        //     console.log('iterationMap',iterationMap, startDates);
+        //     itemRollovers = {};
+        //     timeboxRollovers = {};
+        //     for (var x=0; x<snapshotsResults.length; x++){
+        //         var snapshots = snapshotsResults[x];
+        //         console.log('snapshots.length',snapshots.length)
+        //         for (var y=0; y<snapshots.length; y++){
+        //             var snap = snapshots[y];
+        //             var oid = snap.get("ObjectID"),
+        //             iteration = snap.get("Iteration"),
+        //             prevIteration = snap.get("_PreviousValues.Iteration"),
+        //             validFrom = Date.parse(snap.get("_ValidFrom")),
+        //             validTo = Date.parse(snap.get('_ValidTo')),
+        //             prevIterationStartDate = iterationMap[prevIteration].getStartDateMs(),
+        //             currentTimebox = iterationMap[iteration],
+        //             iterationEndDate = Date.parse(currentTimebox.get('EndDate'));
+        //             console.log(currentTimebox.get('Name'))
+        //             if (prevIteration && iteration && validTo > prevIterationStartDate && validFrom < iterationEndDate ){  //&& !(prevIterationStartDate > validFrom))
+        //                 if (!itemRollovers[oid]){
+        //                     itemRollovers[oid] = [];
+        //                 }
+        //                 if (!_.contains(itemRollovers[oid],iteration)){
+        //                     itemRollovers[oid].push(iteration);
+        //                 }
+        //                 if (!_.contains(itemRollovers[oid],prevIteration)){
+        //                     itemRollovers[oid].push(prevIteration);
+        //                 }
+        //             }                     
+        //         }
+        //     }
+        //     console.log('itemRollovers',itemRollovers)
           
-            //This assumes iterations are in descending order 
-            var currIndex = null,
-                prevIndex = null; 
-            _.each(itemRollovers, function(iterations,oid){
-                var rolloverCount = 0; 
-                for (var i=iterations.length-1; i>0; i--){
-                    var timebox = iterationMap[iterations[i]];
-                    prevIndex = currIndex;  
-                    currIndex = timebox && timebox.get('orderIndex') || 0; 
-                    if (currIndex > 0 && (currIndex - 1 === prevIndex) || prevIndex === null){
-                        rolloverCount++;
-                        timebox.addRollover(oid,rolloverCount);
-                        console.log('addRollover',oid,rolloverCount)
-                    } else {
-                        rolloverCount = 0;  
-                    }
-                }
-            });
+        //     //This assumes iterations are in descending order 
+        //     var currIndex = null,
+        //         prevIndex = null; 
+        //     _.each(itemRollovers, function(iterations,oid){
+        //         var rolloverCount = 0; 
+        //         for (var i=iterations.length-1; i>0; i--){
+        //             var timebox = iterationMap[iterations[i]];
+        //             prevIndex = currIndex;  
+        //             currIndex = timebox && timebox.get('orderIndex') || 0; 
+        //             if (currIndex > 0 && (currIndex - 1 === prevIndex) || prevIndex === null){
+        //                 rolloverCount++;
+        //                 timebox.addRollover(oid,rolloverCount);
+        //                 console.log('addRollover',oid,rolloverCount)
+        //             } else {
+        //                 rolloverCount = 0;  
+        //             }
+        //         }
+        //     });
 
 
-        },
+        // },
 
         buildItemRolloverHash: function(rollovers, lastItemRollovers, timeboxGroups){
             var itemDataHash = {},
@@ -327,12 +325,12 @@ Ext.define('RolloverCalculator', {
                 return map; 
             },{});
 
-            console.log('iterationMap1 ',iterationMap)
+
             var allRollovers = _.flatten(rollovers);
             allRollovers = allRollovers.concat(lastItemRollovers);
-            console.log('allRollovers',rollovers,lastItemRollovers,allRollovers)
+       
             _.each(allRollovers, function(snap){
-                console.log('snap',snap.getData());
+
                 var id = snap.get('ObjectID'),
                     prevIteration = snap.get('_PreviousValues.Iteration'),
                     iteration = snap.get('Iteration'),
@@ -340,7 +338,7 @@ Ext.define('RolloverCalculator', {
                     validFrom = Date.parse(snap.get('_ValidFrom')),
                     iterationId = null,
                     prevIterationId = null;
-                    console.log('prev',snap.get('_PreviousValues.Iteration'))
+                 
                     if (typeof iteration === 'object'){
                         //this is  from the last rollovers where iteration is hydrated
                         iterationId = iteration && iteration.ObjectID;
@@ -376,48 +374,36 @@ Ext.define('RolloverCalculator', {
                         startDates.push(iterationMap[iterationId].startDateMs);
                     }
                 }
-                console.log('snap',snap.getData());
-                var startDateMs = iterationMap[prevIterationId].startDateMs || iterationMap[prevIterationId].getStartDateMs();
-                var endDateMs = iterationMap[iterationId].endDateMs || iterationMap[iterationId].getEndDateMs();
+                itemDataHash[id].push(snap.data);
                 
-                console.log('validTo',validTo,iterationMap[iterationId],iterationMap[iterationId].startDateMs);
-                console.log('validFrom',validFrom,iterationMap[iterationId].endDateMs);
-                console.log('include',snap.get('FormattedID'),validTo,startDateMs,validFrom,endDateMs,iterationMap[iterationId])
-                //if (validTo > startDateMs && validFrom < endDateMs){
-                    console.log('included')
-                    itemDataHash[id].push(snap.data);
-                //}
             });
 
             //TODO add index to iteration map
             startDates.sort() 
             _.each(iterationMap, function(tb,id){
-                console.log('tb',tb);
                 var startDateMs = tb.startDateMs || tb.getStartDateMs();
                 tb.index = startDates.indexOf(startDateMs);
-                console.log('tb.index',tb.index)
             });
-            console.log('done with iteration map')
+
             var itemRolloverHash = {};
-            console.log('iterationMap',iterationMap)
+
             _.each(itemDataHash, function(dataArray,id){
                 dataArray.sort(function(a,b){
                     if (Date.parse(a._ValidFrom) > Date.parse(b._ValidFrom)){ return 1; }
                     else { return -1;}
                 });
                 //data array should be sorted ascending
-                console.log('dataArray',dataArray)
+
                 itemRolloverHash[id] = {};
 
                 _.each(dataArray, function(d){
-                    console.log('d',d);
+                
                     var pid = d["_PreviousValues.Iteration"].ObjectID || d["_PreviousValues.Iteration"] || d._PreviousValues.Iteration || null,
                         iid = d.Iteration.ObjectID || d.Iteration || null,
                         oid = d.ObjectID;
                     ///if previousIteration index + 1 = iteration index then we want to do this, 
                     //otherwise dont.  
-                    console.log('pid',pid, 'iterationMap[pid', iterationMap[pid], ' id ', id, 'iteration ',iterationMap[iid])
-                    if (iterationMap[pid].index + 1 === iterationMap[iid].index){
+                     if (iterationMap[pid].index + 1 === iterationMap[iid].index){
                         var rollover = itemRolloverHash[oid][pid] || 0;
                         itemRolloverHash[oid][iid] = rollover + 1; 
                         if (iterationMap[iid] && iterationMap[iid].addRollover){

@@ -160,7 +160,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         }
     },
     getShowControls: function(){
-        return this.projectIsHighLevel === false;
+        return !this.getShowRollover() && this.projectIsHighLevel === false;
     },
     clearCache: function(force){ 
         var key = 'Clearing timebox cache batch';
@@ -455,13 +455,23 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         
         var timeboxNames = RolloverCalculator.getTimeboxNamesAsc(this.timeboxGroups); 
 
+        var oids = _.reduce(timeboxDataHash, function(arr, tbData){
+            _.each(tbData.rolloverOids, function(idx,itemOid){
+                if (!_.contains(arr,itemOid)){
+                    arr.push(itemOid);
+                }
+            });
+            return arr; 
+        },[]);
+
+
+
         var rows = {};
         _.each(timeboxDataHash, function(tbData, tbName){
             _.each(tbData.rolloverOids, function(count, oid){
                 if (!rows[oid]){
                     rows[oid] = {
-                        FormattedID: oid,
-                        Iteration: "",
+                        FormattedID: oid
                     }
                     for (var i=0; i<timeboxNames; i++){
                         rows[oid][timeboxNames[i]] = "";
@@ -471,21 +481,35 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             });
         });
 
-        var dataArray = _.values(rows);
-
         var exportFieldsHash = {
             "FormattedID": "Formatted ID",
-            "Iteration": "Iteration"
+            "Name": "Name",
+            "Iteration": "Iteration",
+            "Project": "Project"
         };
         for (var i=0; i<timeboxNames.length; i++){
             exportFieldsHash[timeboxNames[i]] = timeboxNames[i];
         }
 
-        if (dataArray.length > 0){      
-            var fileName = Ext.String.format("storyRollover_{0}.csv",Rally.util.DateTime.format(new Date(),"Ymd_His"));
-            var csvText = CArABU.technicalservices.FileUtilities.convertDataArrayToCSVText(dataArray, exportFieldsHash);
-            CArABU.technicalservices.FileUtilities.saveCSVToFile(csvText, fileName);
-        }
+        var dataArray = _.values(rows);
+        var fields = ["Iteration","Project","Name",'FormattedID']
+
+        this.fetchDetailData(oids,fields, dataArray,'FormattedID').then({
+            success: function(newDataArray){
+
+                if (newDataArray.length > 0){      
+                    var fileName = Ext.String.format("storyRollover_{0}.csv",Rally.util.DateTime.format(new Date(),"Ymd_His"));
+                    var csvText = CArABU.technicalservices.FileUtilities.convertDataArrayToCSVText(newDataArray, exportFieldsHash);
+                    CArABU.technicalservices.FileUtilities.saveCSVToFile(csvText, fileName);
+                }
+            },
+            failure: function(msg){
+                this._showError("Failed to fetch details for export file." + msg);
+            },
+            scope: this 
+        });
+
+
 
     },
     exportData: function(){
@@ -511,7 +535,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                     this.exportFile(newDataArray,fields);
                 },
                 failure: function(msg){
-                    this._showError("Failed to fetch details for export file.  Exporting without details...");
+                    this._showError("Failed to fetch details for export file." + msg);
                     this.exportFile(dataArray,fields);
                 },
                 scope: this 
@@ -522,11 +546,10 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         
     },
     exportFile: function(dataArray, fields){
-        console.log('dataArray',dataArray);
+
         if (dataArray.length > 0){      
             var fileName = Ext.String.format("plannedDelivered_{0}.csv",Rally.util.DateTime.format(new Date(),"Ymd_His"));
             var csvText = CArABU.technicalservices.FileUtilities.convertDataArrayToCSVText(dataArray, TimeboxCacheModelBuilder.getExportFieldsHash(fields));
-            console.log(dataArray, TimeboxCacheModelBuilder.getExportFieldsHash(fields))
             CArABU.technicalservices.FileUtilities.saveCSVToFile(csvText, fileName);
         }
     },
@@ -534,11 +557,12 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         var fields = this.getFieldsFromButton();
         this.exportCacheData(fields);
     },
-    fetchDetailData: function(detailOids,fields, dataArray){
+    fetchDetailData: function(detailOids,fields, dataArray, oidField){
         var deferred = Ext.create('Deft.Deferred');
+        if (!oidField){ oidField = "ObjectID"}
 
         var filters = {
-            property: 'ObjectID',
+            property: oidField,
             operator: 'in',
             value: detailOids.join(",")
         }
@@ -555,7 +579,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             callback: function(records,operation,success){
 
                 if (operation.wasSuccessful()){
-                    this.addDetailToDataArray(dataArray,fields,records);
+                    this.addDetailToDataArray(dataArray,fields,records,oidField);
                     this.setLoading(false);
                     deferred.resolve(dataArray);
                 } else {
@@ -568,14 +592,15 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
 
         return deferred.promise; 
     },
-    addDetailToDataArray: function(dataArray,fields,records){
+    addDetailToDataArray: function(dataArray,fields,records,oidField){
+        if (!oidField){ oidField = "ObjectID"; }
         var hash = _.reduce(records, function(hash,r){
-            hash[r.get('ObjectID')] = r.getData();
+            hash[r.get(oidField)] = r.getData();
             return hash;
         },{});
 
         for (var i=0; i< dataArray.length; i++){
-            var detailRec = hash[dataArray[i].ObjectID] || {},
+            var detailRec = hash[dataArray[i][oidField]] || {},
                 emptyText = _.isEmpty(detailRec) ? "[deleted]" : "";
             for (var j=0; j<fields.length; j++){         
                 dataArray[i][fields[j]] = detailRec[fields[j]] || dataArray[i][fields[j]] || emptyText;       
@@ -708,7 +733,6 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
 
         if (timeboxes.length === 0){ return []; }
 
-        console.log('timeboxes',timeboxes)
         var dataContext = this.getContext().getDataContext();
         dataContext.includePermissions = false; 
         var status = this._getNewStatus();
