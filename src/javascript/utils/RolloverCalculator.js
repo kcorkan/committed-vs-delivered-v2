@@ -186,13 +186,25 @@ Ext.define('RolloverCalculator', {
                     return tb.get('ObjectID');
                 });
                 var currentTimeboxes = _.map(timeboxGroups[i], function(tb){
-                   // if (!prevStartDate){ prevStartDate = tb.getStartDate().toISOString(); }
+                    if (!prevStartDate){ prevStartDate = tb.getStartDate().toISOString(); }
                     if (!currentEndDate ){ currentEndDate = tb.getEndDate().toISOString(); }
                     return tb.get('ObjectID');
                 });
         
                 console.log('previous', prevStartDate, 'current', currentEndDate)
-                if (previousTimeboxes.length > 0 && currentTimeboxes.length > 0){
+                var prevFilter = {
+                    property: '_PreviousValues.Iteration',
+                    operator: ">",
+                    value: 0
+                };
+                if (previousTimeboxes.length > 0){
+                    prevFilter = {
+                        property: '_PreviousValues.Iteration',
+                        operator: "in",
+                        value: previousTimeboxes
+                    }
+                }
+                if (currentTimeboxes.length > 0){
                     var filters = [{
                         property: '_TypeHierarchy',
                         value: 'HierarchicalRequirement'
@@ -201,15 +213,13 @@ Ext.define('RolloverCalculator', {
                         property: 'Iteration',
                         operator: 'in',
                         value: currentTimeboxes
-                    },{
-                        property: '_PreviousValues.Iteration',
-                        operator: "in",
-                        value: previousTimeboxes
-                    },{
-                        property: '_ValidTo',
-                        operator: '>',
-                        value: prevStartDate
-                    }
+                    },
+                    prevFilter
+                    // ,{
+                    //     property: '_ValidTo',
+                    //     operator: '>',
+                    //     value: prevStartDate
+                    // }
                     ];
                     promises.push(RolloverCalculator.fetchSnapshots(filters,status,dataContext));
                 }
@@ -302,7 +312,6 @@ Ext.define('RolloverCalculator', {
 
         },
 
-        //"S1": ["95","96","97","98","99","100"]
         buildItemRolloverHash: function(rollovers, lastItemRollovers, timeboxGroups){
             var itemDataHash = {},
                 startDates = [];
@@ -341,7 +350,6 @@ Ext.define('RolloverCalculator', {
                         iterationId = iteration;
                         prevIterationId = prevIteration; 
                     }
-
 
                 if (!itemDataHash[id]){
                     itemDataHash[id] = [];
