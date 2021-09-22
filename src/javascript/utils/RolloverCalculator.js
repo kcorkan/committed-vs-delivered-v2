@@ -203,14 +203,14 @@ Ext.define('RolloverCalculator', {
                         value: currentTimeboxes
                     },{
                         property: '_PreviousValues.Iteration',
-                        operator: "$ne",
-                        value: null
+                        operator: "in",
+                        value: previousTimeboxes
                         // operator: 'in',
                         // value: previousTimeboxes
-                    },{
-                        property: '_ValidTo',
-                        operator: '$gt',
-                        value: prevStartDate
+                    // },{
+                    //     property: '_ValidTo',
+                    //     operator: '>',
+                    //     value: prevStartDate
                     }
                     ];
                     promises.push(RolloverCalculator.fetchSnapshots(filters,status,dataContext));
