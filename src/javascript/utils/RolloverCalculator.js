@@ -197,13 +197,13 @@ Ext.define('RolloverCalculator', {
                     operator: ">",
                     value: 0
                 };
-                if (previousTimeboxes.length > 0){
-                    prevFilter = {
-                        property: '_PreviousValues.Iteration',
-                        operator: "in",
-                        value: previousTimeboxes
-                    }
-                }
+                // if (previousTimeboxes.length > 0){
+                //     prevFilter = {
+                //         property: '_PreviousValues.Iteration',
+                //         operator: "in",
+                //         value: previousTimeboxes
+                //     }
+                // }
                 if (currentTimeboxes.length > 0){
                     var filters = [{
                         property: '_TypeHierarchy',
@@ -377,10 +377,10 @@ Ext.define('RolloverCalculator', {
                 console.log('validTo',validTo,iterationMap[iterationId],iterationMap[iterationId].startDateMs);
                 console.log('validFrom',validFrom,iterationMap[iterationId].endDateMs);
                 console.log('include',snap.get('FormattedID'),validTo,startDateMs,validFrom,endDateMs,iterationMap[iterationId])
-                if (validTo > startDateMs && validFrom < endDateMs){
+                //if (validTo > startDateMs && validFrom < endDateMs){
                     console.log('included')
                     itemDataHash[id].push(snap.data);
-                }
+                //}
             });
 
             //TODO add index to iteration map
