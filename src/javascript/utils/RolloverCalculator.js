@@ -344,10 +344,16 @@ Ext.define('RolloverCalculator', {
                     if (typeof iteration === 'object'){
                         //this is  from the last rollovers where iteration is hydrated
                         iterationId = iteration && iteration.ObjectID;
-                        prevIterationId = prevIteration && prevIteration.ObjectID;
+                        
                     } else {
                         //this is just the iteration id 
                         iterationId = iteration;
+                        
+                    }
+
+                    if (typeof prevIteration === 'object'){
+                        prevIterationId = prevIteration && prevIteration.ObjectID;
+                    } else {
                         prevIterationId = prevIteration; 
                     }
 
