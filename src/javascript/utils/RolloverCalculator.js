@@ -203,8 +203,10 @@ Ext.define('RolloverCalculator', {
                         value: currentTimeboxes
                     },{
                         property: '_PreviousValues.Iteration',
-                        operator: 'in',
-                        value: previousTimeboxes
+                        operator: "$ne",
+                        value: null
+                        // operator: 'in',
+                        // value: previousTimeboxes
                     },{
                         property: '_ValidTo',
                         operator: '$gt',
