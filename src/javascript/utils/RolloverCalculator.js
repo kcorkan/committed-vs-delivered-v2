@@ -368,8 +368,9 @@ Ext.define('RolloverCalculator', {
                 
                 console.log('validTo',validTo,iterationMap[iterationId],iterationMap[iterationId].startDateMs);
                 console.log('validFrom',validFrom,iterationMap[iterationId].endDateMs);
-
+                console.log('include',snap.get('FormattedID'),validTo,startDateMs,validFrom,endDateMs,iterationMap[iterationId])
                 if (validTo > startDateMs && validFrom < endDateMs){
+                    console.log('included')
                     itemDataHash[id].push(snap.data);
                 }
             });
