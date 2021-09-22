@@ -480,7 +480,6 @@ Ext.define('RolloverCalculator', {
                 context: dataContext,
                 fetch: fields,
                 hydrate: ["_PreviousValues.Iteration"],
-                pageSize: 20000,
                 sortConfig: {},
                 limit: Infinity,
                 remoteSort: false,
