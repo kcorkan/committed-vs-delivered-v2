@@ -176,7 +176,7 @@ Ext.define('RolloverCalculator', {
         fetchRolledOverStories: function(timeboxGroups, status,dataContext){
             var deferred = Ext.create('Deft.Deferred');
             var promises = []; 
-           
+            
             for (var i=0; i<timeboxGroups.length-1 ; i++ ){
 
                 var prevStartDate = null,
