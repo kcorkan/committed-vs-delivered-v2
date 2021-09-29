@@ -214,11 +214,11 @@ Ext.define('RolloverCalculator', {
                         value: currentTimeboxes
                     },
                     prevFilter
-                    // ,{
-                    //     property: '_ValidTo',
-                    //     operator: '>',
-                    //     value: prevStartDate
-                    // }
+                    ,{
+                        property: '_ValidTo',
+                        operator: '>',
+                        value: prevStartDate
+                    }
                     ];
                     promises.push(RolloverCalculator.fetchSnapshots(filters,status,dataContext));
                 }
