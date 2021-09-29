@@ -441,6 +441,7 @@ Ext.define('RolloverCalculator', {
                    Iteration: {"$ne": null},
                    "_PreviousValues.Iteration": {"$ne": null}
             };
+            console.log('oids',oids.length);
          
             var store = Ext.create('Rally.data.lookback.SnapshotStore', {
                 autoLoad: false,
@@ -453,6 +454,7 @@ Ext.define('RolloverCalculator', {
                 remoteSort: false,
                 compress: true,
                 useHttpPost: true, 
+                removeUnauthorizedSnapshots: true, 
                 find: find,
                 exceptionHandler: function(proxy, request){
                     status.addError(key);
@@ -484,6 +486,7 @@ Ext.define('RolloverCalculator', {
                 compress: true,
                 useHttpPost: true, 
                 filters: filters,
+                removeUnauthorizedSnapshots: true, 
                 exceptionHandler: function(proxy, request){
                     status.addError(key);
                 },
