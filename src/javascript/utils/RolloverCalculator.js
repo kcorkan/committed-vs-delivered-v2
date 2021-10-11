@@ -370,7 +370,7 @@ Ext.define('RolloverCalculator', {
                     ///if previousIteration index + 1 = iteration index then we want to do this, 
                     //otherwise dont.  
                     var iterationStartDate = iterationMap[iid].startDateMs || iterationMap[iid].getStartDateMs(),
-                        prevIterationStartDate = iterationMap[pid].endDateMs || iterationMap[pid].getEndDateMs();
+                        prevIterationStartDate = iterationMap[pid].startDateMs || iterationMap[pid].getStartDateMs();
 
                      if (iterationMap[pid].index + 1 === iterationMap[iid].index){
                          console.log('buildItemRolloverHash oid ', oid, ' validFro ', validFrom, ' validTo ', validTo);

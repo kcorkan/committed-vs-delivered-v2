@@ -882,6 +882,9 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         return this.getSetting('persistCache') === true || this.getSetting('persistCache') === "true" || false;
     },
     getForceReload: function(){
+        if (!this.getHistorcalCacheField()){
+            return true;
+        }
         return this.getSetting('forceReload') === true || this.getSetting('forceReload') === "true" || false;
     },
     getShowRollover: function(){
