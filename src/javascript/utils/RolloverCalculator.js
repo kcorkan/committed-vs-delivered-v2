@@ -375,12 +375,13 @@ Ext.define('RolloverCalculator', {
                      if (iterationMap[pid].index + 1 === iterationMap[iid].index){
                          console.log('buildItemRolloverHash oid ', oid, ' validFro ', validFrom, ' validTo ', validTo);
                          console.log('buildItemRolloverHash oid ', oid, ' prev startDa ', prevIterationStartDate, ' startDate ', iterationStartDate);
-                        if (validFrom > prevIterationStartDate && validTo > iterationStartDate){
+                        if (validFrom > prevIterationStartDate){
                             var rollover = itemRolloverHash[oid][pid] || 0;
                             console.log('buildItemRolloverHash counting as rollover',oid, rollover);
                             itemRolloverHash[oid][iid] = rollover + 1; 
                             if (iterationMap[iid] && iterationMap[iid].addRollover){
-                                iterationMap[iid].addRollover(oid,itemRolloverHash[oid][iid],cacheField);
+                                var added = iterationMap[iid].addRollover(oid,itemRolloverHash[oid][iid],cacheField);
+                                if (!added){ itemRolloverHash[oid][iid] = 0; } //This is because we don't want to count things that were never in the iteration
                             }
                         } else {
                             console.log('buildItemRolloverHash resetting ', oid);

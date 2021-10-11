@@ -220,11 +220,11 @@ Ext.define('TimeboxCacheModelBuilder',{
                         if (!cacheObj.data){
 
                             console.log('no cache object', this.get('Name'), this.get('ObjectID'), this.getCacheObject());
-                            return;
+                            return false;
                         }
                         if (!cacheObj.data[objectID]){
                             //console.log('objectID not found in iteration',this.get('Name'), this.get('StartDate'),this.get('EndDate'),objectID);
-                            return;
+                            return false;
                         } 
                      
                         cacheObj.data[objectID][TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] = rolloverCount;
@@ -233,6 +233,7 @@ Ext.define('TimeboxCacheModelBuilder',{
                             this.set(cacheField,JSON.stringify(cacheObj));
                             this.__isDirty = true;
                         }
+                        return true;
                     },
                     getCacheObject: function(){
                         var cache = this.get(this.historicalCacheField) || {};
