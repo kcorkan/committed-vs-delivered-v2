@@ -194,7 +194,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     },
     persistCache: function(historicalCacheField){
         var key = 'Saving timebox cache batch';
-        console.log('persistCache',historicalCacheField);
+        console.log('persistCache to ',historicalCacheField, ' = ', this.getPersistCacheChanges());
 
         var timeboxes = this.timeboxes; 
         var status = this._getNewStatus();
@@ -206,6 +206,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             }
         }
         console.log('persistCache timeboxesToUpdate',timeboxesToUpdate);
+        
         if (!this.getPersistCacheChanges()){return; }
         
         var promises = [],

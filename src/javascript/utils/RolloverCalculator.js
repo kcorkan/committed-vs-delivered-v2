@@ -35,9 +35,7 @@ Ext.define('RolloverCalculator', {
                 for (var j=0; j<timeboxGroups[i].length; j++){
                     var timebox = timeboxGroups[i][j];
                     var rollovers = timebox.getRolloverObjectCountHash(useFormattedID);
-                    console.log('rollovers',rollovers);
                     timeboxDataHash[currName].rolloverOids = _.reduce(rollovers, function(hsh,v,k){
-                        console.log('reducing data hash',hsh,k,v);
                         v = Math.min(maxRollover,v);
                         timeboxDataHash[currName].rolloverCount[v]++;
                         if (v>0){
@@ -373,11 +371,8 @@ Ext.define('RolloverCalculator', {
                         prevIterationStartDate = iterationMap[pid].startDateMs || iterationMap[pid].getStartDateMs();
 
                      if (iterationMap[pid].index + 1 === iterationMap[iid].index){
-                         console.log('buildItemRolloverHash oid ', oid, ' validFro ', validFrom, ' validTo ', validTo);
-                         console.log('buildItemRolloverHash oid ', oid, ' prev startDa ', prevIterationStartDate, ' startDate ', iterationStartDate);
                         if (validFrom > prevIterationStartDate){
                             var rollover = itemRolloverHash[oid][pid] || 0;
-                            console.log('buildItemRolloverHash counting as rollover',oid, rollover);
                             itemRolloverHash[oid][iid] = rollover + 1; 
                             if (iterationMap[iid] && iterationMap[iid].addRollover){
                                 var added = iterationMap[iid].addRollover(oid,itemRolloverHash[oid][iid],cacheField);
