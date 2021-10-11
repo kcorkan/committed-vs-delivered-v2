@@ -1047,6 +1047,9 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     },
     hideCacheSettings: function(hide){
         this.up().down('#historicalCacheField').setDisabled(hide);
+        this.up().down('#forceReload').setDisabled(hide);
+        this.up().down('#persistCache').setDisabled(hide);
+        
         this.up().down('#showCacheManagement') && this.up().down('#showCacheManagement').setDisabled(hide);
     },
     getSettingsFields: function(){
@@ -1099,13 +1102,15 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             xtype: 'rallycheckboxfield',
             name: 'forceReload',
             fieldLabel: 'Force Reload',
-            labelWidth: labelWidth,
+            labelWidth: labelWidth + 50,
+            disabled: !showCache, 
             labelAlign: labelAlign
         },{
             xtype: 'rallycheckboxfield',
             name: 'persistCache',
             fieldLabel: 'Persist Updated Cache',
-            labelWidth: labelWidth,
+            labelWidth: labelWidth + 50,
+            disabled: !showCache, 
             labelAlign: labelAlign
         }];
     }
