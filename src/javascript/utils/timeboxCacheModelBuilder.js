@@ -237,7 +237,7 @@ Ext.define('TimeboxCacheModelBuilder',{
                     getCacheObject: function(){
                         var cache = this.get(this.historicalCacheField) || {};
                         if (_.isEmpty(cache) && this.persistedCacheField){
-                            console.log('getCacheObject: loading from persisted field',this.persistedCacheField);
+                        //    console.log('getCacheObject: loading from persisted field',this.persistedCacheField);
                             this.loadCache(this.persistedCacheField);
                             cache = this.get(this.historicalCacheField) || {};
                         }

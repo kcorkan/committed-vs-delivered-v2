@@ -63,9 +63,6 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                 
                 groupedOids = _.reduce(groupedOids,function(obj,snapshots,timebox){
                     var snapsByOid = _.groupBy(snapshots, function(s){
-                        if (s.get('FormattedID') === "S182180"){
-                            console.log('intimebox',timebox);
-                        }
                         return s.get('ObjectID'); 
                     });
                     obj[timebox] = snapsByOid;  

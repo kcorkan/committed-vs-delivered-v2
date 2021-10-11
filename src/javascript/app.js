@@ -57,10 +57,10 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     currentData: [],
     settingsChanged: false,
 
-    onTimeboxScopeChange: function(scope) {
-        this.callParent(arguments);
-        this.viewChange();
-    },
+    // onTimeboxScopeChange: function(scope) {
+    //     this.callParent(arguments);
+    //     this.viewChange();
+    // },
 
     launch: function() {
         if (this.getSaveCacheToTimebox() === true && this.getHistorcalCacheField() === null){
@@ -394,12 +394,12 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                 stateId: context.getScopedStateId(this.modelName + 'fields'), // columns specific to type of object
                 // Always need the accepted date field
                 alwaysSelectedValues: Constants.ALWAYS_SELECTED_FIELDS.concat(this.acceptedDateField),
-                listeners: {
-                    fieldsupdated: function(fields) {
-                        this.viewChange();
-                    },
-                    scope: this
-                }
+                // listeners: {
+                //     fieldsupdated: function(fields) {
+                //         this.viewChange();
+                //     },
+                //     scope: this
+                // }
             });
             exportMenu.push({
                 text: 'Export to CSV with details...',
@@ -714,7 +714,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     },
     buildHistoricalCache: function(timeboxes) {
         // Group by timebox name
-
+        console.log('buildHistoricalCache', new Date())
         if (timeboxes.length === 0){ return []; }
 
         var dataContext = this.getContext().getDataContext();
@@ -1009,18 +1009,18 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             chartData: chartData 
         }
     },
-    onSettingsClose: function() {
-        // Don't redraw the app unless something has changed
-        if (this.settingsChanged) {
-            this.settingsChanged = false;
-            this.viewChange();
-        }
-    },
+    // onSettingsClose: function() {
+    //     // Don't redraw the app unless something has changed
+    //     if (this.settingsChanged) {
+    //         this.settingsChanged = false;
+    //         this.viewChange();
+    //     }
+    // },
 
-    updateSettingsValues: function(options) {
-        this.settingsChanged = true;
-        this.callParent(arguments);
-    },
+    // updateSettingsValues: function(options) {
+    //     this.settingsChanged = true;
+    //     this.callParent(arguments);
+    // },
 
     getModelScopedStateId: function(modelName, id) {
         return this.getContext().getScopedStateId(modelName + '-' + id);
