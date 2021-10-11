@@ -857,15 +857,19 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                             success: function(timeboxGroups){
                                 status.done();
                                 this._showRolloverChart(timeboxGroups);
+                                if (this.getSaveCacheToTimebox()){
+                                    this.persistCache(this.getHistorcalCacheField());
+                                }
                             },
                             scope: this 
                         });
                     } else {
                         this._showChart(timeboxGroups);
+                        if (this.getSaveCacheToTimebox()){
+                            this.persistCache(this.getHistorcalCacheField());
+                        }
                     }
-                    if (this.getSaveCacheToTimebox()){
-                        this.persistCache(this.getHistorcalCacheField());
-                    }
+                    
                 }
             }
         });
