@@ -362,15 +362,24 @@ Ext.define('RolloverCalculator', {
                 
                     var pid = d["_PreviousValues.Iteration"].ObjectID || d["_PreviousValues.Iteration"] || d._PreviousValues.Iteration || null,
                         iid = d.Iteration.ObjectID || d.Iteration || null,
-                        oid = d.ObjectID;
+                        oid = d.ObjectID,
+                        validTo = Date.parse(d._ValidTo),
+                        validFrom = Date.parse(d._ValidFrom);  
                     ///if previousIteration index + 1 = iteration index then we want to do this, 
                     //otherwise dont.  
+                    var iterationStartDate = iterationMap[pid].startDateMs || iterationMap[pid].getStartDateMs(),
+                        iterationEndDate = iterationMap[pid].endDateMs || iterationMap[pid].getEndDateMs();
+
                      if (iterationMap[pid].index + 1 === iterationMap[iid].index){
-                        var rollover = itemRolloverHash[oid][pid] || 0;
-                        itemRolloverHash[oid][iid] = rollover + 1; 
-                        if (iterationMap[iid] && iterationMap[iid].addRollover){
-                            iterationMap[iid].addRollover(oid,itemRolloverHash[oid][iid],cacheField);
+                        if (validTo > iterationStartDate && validFrom < iterationEndDate){
+                            var rollover = itemRolloverHash[oid][pid] || 0;
+                            itemRolloverHash[oid][iid] = rollover + 1; 
+                            if (iterationMap[iid] && iterationMap[iid].addRollover){
+                                iterationMap[iid].addRollover(oid,itemRolloverHash[oid][iid],cacheField);
+                            }
                         }
+                    
+                        
                     }
                 });
 
