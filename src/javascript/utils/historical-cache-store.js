@@ -35,6 +35,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                
                 this.fetchSnapshots(filters, status).then({
                     success: function(snapshots){
+                        console.log('processSnaps',snapshots.length)
                         this.processSnapshots(snapshots, timeboxGroup,persistedCacheField);
                         deferred.resolve(timeboxGroup);
                     },
@@ -106,7 +107,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
             if (timeboxOids.length === 0){
                 return [];
             }
-            console.log('invalidTimeboxOids',timeboxOids);
+            console.log('invalidTimeboxOids',timeboxOids.length);
             var timeboxStartIso = timebox.getStartDate().toISOString();
             var timeboxEndIso = timebox.getEndDate().toISOString();
             var dateFilter = Rally.data.lookback.QueryFilter.and([{

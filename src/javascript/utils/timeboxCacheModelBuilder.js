@@ -11,7 +11,9 @@ Ext.define('TimeboxCacheModelBuilder',{
     DELIVERED_POINTS_IDX: 4,
     FID_IDX: 5, 
     COUNT_IDX: 6,
-
+    ROLLOVER_COUNT_IDX: 7,
+    ROLLOVER_IDX: 8,
+   
     VIRTUAL_CACHE_FIELD_NAME: "__unpersistedCache",
    
     getExportFieldsHash: function(fields){
@@ -55,9 +57,12 @@ Ext.define('TimeboxCacheModelBuilder',{
                     name: historicalCacheFieldName,
                     defaultValue: null,
                     type: 'object'
+                 },{
+                     name: 'orderIndex',
+                     defaultValue: 0,
+                     type: 'integer'
                  });    
                 //}
-
 
                 
                 var new_model = Ext.define(newModelName, {
@@ -99,7 +104,17 @@ Ext.define('TimeboxCacheModelBuilder',{
                     getEndDateMs: function(){
                         return Date.parse(this.get(this.timeboxEndDateField));
                     },
-
+                    isRolloverValid: function(){
+                        var cacheObj = this.getCacheObject();
+                        var rollovers = false;  
+                        _.each(cacheObj.data, function(v,k){
+                            if (v[TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] >= 0){
+                                rollovers= true; //If at least 1 object has rollovers, then we know this is valid.  
+                                return false;   
+                            }
+                        });
+                        return rollovers; 
+                    },
                     buildCacheFromSnaps: function(snapArraysByOid,deliveredDateField,pointsField,cacheField){
                         var cache = {
                                 startDate: this.getStartDateMs(),
@@ -108,13 +123,15 @@ Ext.define('TimeboxCacheModelBuilder',{
                                 data: {}
                             };
                         var startDateMs = this.getStartDateMs();
+                        
                         _.each(snapArraysByOid, function(snapArray,snapOid){
-                         
+                            
                             var snaps = _.sortBy(snapArray, function(s){ 
                                 return new Date(s.data._ValidFrom).getTime();
                             }).filter(function(snap){
                                 return !(new Date(snap.data._ValidTo).getTime() <= startDateMs);
                             });
+
                             if (snaps.length > 0){
 
                                 var firstDayInRange = snaps[0].data._ValidFrom,
@@ -132,6 +149,7 @@ Ext.define('TimeboxCacheModelBuilder',{
                                 cacheData[TimeboxCacheModelBuilder.DELIVERED_POINTS_IDX] = lastSnap[pointsField] || 0;
                                 cacheData[TimeboxCacheModelBuilder.COUNT_IDX] = snaps.length;
                                 cacheData[TimeboxCacheModelBuilder.FID_IDX] = snaps[0].data['FormattedID'];
+                                cacheData[TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] = -1;
                                 
                                 cache.data[snapOid] = cacheData;
                             } 
@@ -144,8 +162,86 @@ Ext.define('TimeboxCacheModelBuilder',{
                             this.__isDirty = true;
                         }
                     },
+                    getRolloverData: function(useFormattedID){
+                        var cacheObj = this.getCacheObject();
+                       // console.log('getRolloverData',cacheObj);
+                        var count = 0;
+                        var rollovers = []; 
+
+                        _.each(cacheObj.data, function(v,k){
+                            if (v[TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] > 0){
+                                if (useFormattedID){
+                                    rollovers.push(v[TimeboxCacheModelBuilder.FID_IDX]);
+                                } else {
+                                    rollovers.push(k);
+                                }
+                                
+                            } else {
+                                count++;
+                            }
+                        });
+                        return {
+                            zeroCount: count,
+                            rollovers: rollovers
+                        }; 
+                    },
+                    getRollovers: function(useFormattedID){
+                        var cacheObj = this.getCacheObject();
+
+                        return _.reduce(cacheObj.data, function(arr,v,k){
+                            if (v[TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] > 0){
+                                if (useFormattedID){
+                                    arr.push(v[TimeboxCacheModelBuilder.FID_IDX]);
+                                } else {
+                                    arr.push(k);
+                                }
+                            } 
+                            return arr; 
+                        },[]);   
+                    },
+                    getRolloverObjectCountHash: function(useFormattedID){
+                        var cacheObj = this.getCacheObject();
+                        var hash = {};
+                        _.each(cacheObj.data, function(v,k){
+                            var oid = k; 
+                            if (useFormattedID){
+                                oid = v[TimeboxCacheModelBuilder.FID_IDX];
+                            }
+                            if (v[TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] === -1){
+                                v[TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] = 0;
+                            }
+                            hash[oid] = v[TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] || 0;  
+                        });
+                        return hash;  
+                    },
+
+                    addRollover: function(objectID,rolloverCount,cacheField){
+                        var cacheObj = this.getCacheObject();
+                        if (!cacheObj.data){
+
+                            console.log('no cache object', this.get('Name'), this.get('ObjectID'), this.getCacheObject());
+                            return;
+                        }
+                        if (!cacheObj.data[objectID]){
+                            //console.log('objectID not found in iteration',this.get('Name'), this.get('StartDate'),this.get('EndDate'),objectID);
+                            return;
+                        } 
+                     
+                        cacheObj.data[objectID][TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] = rolloverCount;
+                        this.set(this.historicalCacheField,cacheObj);
+                        if (cacheField){
+                            this.set(cacheField,JSON.stringify(cacheObj));
+                            this.__isDirty = true;
+                        }
+                    },
                     getCacheObject: function(){
-                        return cache = this.get(this.historicalCacheField) || {};
+                        var cache = this.get(this.historicalCacheField) || {};
+                        if (_.isEmpty(cache) && this.persistedCacheField){
+                        //    console.log('getCacheObject: loading from persisted field',this.persistedCacheField);
+                            this.loadCache(this.persistedCacheField);
+                            cache = this.get(this.historicalCacheField) || {};
+                        }
+                        return cache;
                     },
                     getPersistedCacheObject: function(cacheField){
                         try {
@@ -163,6 +259,7 @@ Ext.define('TimeboxCacheModelBuilder',{
                                     cache.startDate == this.getStartDateMs() && cache.endDate == this.getEndDateMs()){
                                     this.set(this.historicalCacheField, cache);
                                     return true; 
+
                                 } 
                             }
                         }
@@ -177,23 +274,6 @@ Ext.define('TimeboxCacheModelBuilder',{
                         }
              
                         return this.__isDirty; 
-
-
-                        // if (cacheField && this.getEndDate() < new Date()){  //we don't want to save cache's that are current
-                        //     var currentCache = this.getCacheObject() || {},
-                        //         savedCache = this.getPersistedCacheObject(cacheField);
-                            
-                        //     if (savedCache.checksum === currentCache.checksum){
-                        //         return false;  
-                        //     }
-                            
-                        //     var currentCacheStr = JSON.stringify(currentCache);
-                        //     if (JSON.stringify(savedCache) != currentCacheStr){
-                        //         this.set(cacheField,currentCacheStr);
-                        //         return true; 
-                        //     }
-                        // }
-                        return false;
                     },
                     getPlannedDeliveredMetrics: function(planningWindowShiftInDays, minDurationInHours,excludeAcceptedBeforeStart,usePoints){
                         var metrics = {
