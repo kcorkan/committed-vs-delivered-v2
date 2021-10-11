@@ -703,9 +703,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         // Get timeboxes by name from all child projects
     
         var timeboxFilterProperty = this.timeboxEndDateField;
-        // if (this.getSetting('currentTimebox')) {
-        //     timeboxFilterProperty = this.timeboxStartDateField;
-        // }
+
         return Ext.create('Rally.data.wsapi.Store', {
             model: this.timeboxModel || this.timeboxType,
             autoLoad: false,
@@ -858,14 +856,6 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         }).then({
             scope: this,
             success: function(timeboxGroups) {
-                
-                // var orderIndex = timeboxGroups.length; 
-                // for (var j=0; j< timeboxGroups.length; j++){
-                //     for (var i=0; i<timeboxGroups[j].length; i++){
-                //         timeboxGroups[j][i].set('orderIndex',orderIndex)
-                //     }
-                //     orderIndex--;  
-                // }
 
                 this.timeboxGroups = timeboxGroups;
                 this.setLoading(false);
@@ -1055,91 +1045,17 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         this.up().down('#showCacheManagement') && this.up().down('#showCacheManagement').setDisabled(hide);
     },
     getSettingsFields: function(){
-
         var labelWidth = 200,
             labelAlign = 'right';
 
         var showCache = this.getSetting('saveCacheToTimebox');
         return [{
-            xtype: 'rallycombobox',
-                name: 'timeboxType',
-                id: 'timeboxType',
-                fieldLabel: 'Timebox type',
-                labelWidth: labelWidth,
-                storeConfig: {
-                    model: "TypeDefinition",
-                    fetch: ['TypePath','DisplayName'],
-                    filters: {
-                        property: "TypePath",
-                        value: "Iteration"
-                    },
-                    autoLoad: false,
-                    remoteSort: false,
-                    remoteFilter: true
-                },
-                displayField: 'DisplayName',
-                readyEvent: 'ready',
-                valueField: 'TypePath',
-                labelAlign: labelAlign
-        },{
-            xtype: 'rallycombobox',
-            name: 'artifactType',
-            fieldLabel: 'Artifact type',
-            labelWidth: labelWidth,
-            storeConfig: {
-                model: "TypeDefinition",
-                fetch: ['TypePath','DisplayName'],
-                filters: {
-                    property: "TypePath",
-                    value: "HierarchicalRequirement"
-                },
-                autoLoad: false,
-                remoteSort: false,
-                remoteFilter: true
-            },
-            displayField: 'DisplayName',
-            readyEvent: 'ready',
-            valueField: 'TypePath',
-            labelAlign: labelAlign
-        },{
             xtype: 'rallynumberfield',
             name: 'timeboxCount',
             fieldLabel: "Timebox Count",
             labelWidth: labelWidth,
             minValue: 1,
             allowDecimals: false,
-            labelAlign: labelAlign
-        },{
-            xtype: 'rallynumberfield',
-            name: 'planningWindow',
-            fieldLabel: 'Timebox planning window (days)',
-            labelWidth: labelWidth,
-            minValue: 0,
-            allowDecimals: false,
-            labelAlign: labelAlign
-        },{
-            xtype: 'rallycheckboxfield',
-            name: 'currentTimebox',
-            fieldLabel: 'Show current, in-progress timebox',
-            labelWidth: labelWidth,
-            labelAlign: labelAlign
-        },{
-            xtype: 'rallycheckboxfield',
-            name: 'excludeAcceptedBeforeStart',
-            fieldLabel: 'Exclude Work Items accepted before the Iteration',
-            labelWidth: labelWidth,
-            labelAlign: labelAlign
-        },{
-            xtype: 'rallycheckboxfield',
-            name: 'showBySumOfEstimate',
-            fieldLabel: 'Show sum of Plan Estimate',
-            labelWidth: labelWidth ,
-            labelAlign: labelAlign
-        },{
-            xtype: 'rallynumberfield',
-            name: 'minDurationInHours',
-            fieldLabel: 'Minimum number of hours an item spends in the timebox to be included',
-            labelWidth: labelWidth ,
             labelAlign: labelAlign
         },{
             xtype: 'rallycheckboxfield',
@@ -1173,14 +1089,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                     return false;
                 },
                 labelAlign: labelAlign
-        // },{
-        //     xtype: 'rallycheckboxfield',
-        //     name: 'showCacheManagement',
-        //     fieldLabel: 'Enable Cache Management',
-        //     itemId: 'showCacheManagement',
-        //     labelWidth: labelWidth  + 50,
-        //     disabled: !showCache, 
-        //     labelAlign: labelAlign
+    
         }];
     }
 });

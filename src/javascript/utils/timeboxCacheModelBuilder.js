@@ -104,7 +104,17 @@ Ext.define('TimeboxCacheModelBuilder',{
                     getEndDateMs: function(){
                         return Date.parse(this.get(this.timeboxEndDateField));
                     },
-
+                    isRolloverValid: function(){
+                        var cacheObj = this.getCacheObject();
+                        var rollovers = false;  
+                        _.each(cacheObj.data, function(v,k){
+                            if (v[TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] >= 0){
+                                rollovers= true;  
+                                return false;  
+                            }
+                        });
+                        return rollovers; 
+                    },
                     buildCacheFromSnaps: function(snapArraysByOid,deliveredDateField,pointsField,cacheField){
                         var cache = {
                                 startDate: this.getStartDateMs(),
@@ -138,8 +148,6 @@ Ext.define('TimeboxCacheModelBuilder',{
                                     validToPoints = lastSnap[pointsField];
                                 var cacheData = [];
 
-                                
-
                                 cacheData[TimeboxCacheModelBuilder.VALID_FROM_IDX] = Date.parse(firstDayInRange);
                                 cacheData[TimeboxCacheModelBuilder.VALID_TO_IDX] = Date.parse(lastDayInRange);
                                 cacheData[TimeboxCacheModelBuilder.DELIVERED_IDX] = deliveredDate && Date.parse(deliveredDate);
@@ -147,7 +155,7 @@ Ext.define('TimeboxCacheModelBuilder',{
                                 cacheData[TimeboxCacheModelBuilder.DELIVERED_POINTS_IDX] = lastSnap[pointsField] || 0;
                                 cacheData[TimeboxCacheModelBuilder.COUNT_IDX] = snaps.length;
                                 cacheData[TimeboxCacheModelBuilder.FID_IDX] = snaps[0].data['FormattedID'];
-                                cacheData[TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] = 0;
+                                cacheData[TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] = -1;
                                 
                                 cache.data[snapOid] = cacheData;
                             } 
@@ -205,24 +213,27 @@ Ext.define('TimeboxCacheModelBuilder',{
                             if (useFormattedID){
                                 oid = v[TimeboxCacheModelBuilder.FID_IDX];
                             }
+                            if (v[TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] === -1){
+                                v[TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] = 0;
+                            }
                             hash[oid] = v[TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] || 0;  
                         });
                         return hash;  
                     },
-                    getRolloverCount: function(idx){
-                        var cacheObj = this.getCacheObject();
-                        console.log('getRolloverCount',cacheObj);
-                        var rolloverCount = 0;
+                    // getRolloverCount: function(idx){
+                    //     var cacheObj = this.getCacheObject();
+                    //     console.log('getRolloverCount',cacheObj);
+                    //     var rolloverCount = 0;
 
-                        _.each(cacheObj.data, function(v,k){
-                            var count = v[TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] || 0;
-                            if (count === idx){
-                                rolloverCount++;
-                            }
-                        });
-                        console.log('rolloverCount',idx, rolloverCount);
-                        return rolloverCount;             
-                    },
+                    //     _.each(cacheObj.data, function(v,k){
+                    //         var count = v[TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] || 0;
+                    //         if (count === idx){
+                    //             rolloverCount++;
+                    //         }
+                    //     });
+                    //     console.log('rolloverCount',idx, rolloverCount);
+                    //     return rolloverCount;             
+                    // },
                     addRollover: function(objectID,rolloverCount){
                         var cacheObj = this.getCacheObject();
                         if (!cacheObj.data){
@@ -233,10 +244,7 @@ Ext.define('TimeboxCacheModelBuilder',{
                             console.log('objectID not found in iteration',this.get('Name'), this.get('StartDate'),this.get('EndDate'),objectID);
                             return;
                         } 
-                        // if (!cacheObj.data[objectID][TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX]){
-                        //     cacheObj.data[objectID][TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] = 0;
-                        // }
-                        // cacheObj.data[objectID][TimeboxCacheModelBuilder.ROLLOVER_IDX] = prevTimebox;
+                     
                         cacheObj.data[objectID][TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] = rolloverCount;
                         this.set(this.historicalCacheField,cacheObj);
                     },
@@ -273,23 +281,6 @@ Ext.define('TimeboxCacheModelBuilder',{
                         }
              
                         return this.__isDirty; 
-
-
-                        // if (cacheField && this.getEndDate() < new Date()){  //we don't want to save cache's that are current
-                        //     var currentCache = this.getCacheObject() || {},
-                        //         savedCache = this.getPersistedCacheObject(cacheField);
-                            
-                        //     if (savedCache.checksum === currentCache.checksum){
-                        //         return false;  
-                        //     }
-                            
-                        //     var currentCacheStr = JSON.stringify(currentCache);
-                        //     if (JSON.stringify(savedCache) != currentCacheStr){
-                        //         this.set(cacheField,currentCacheStr);
-                        //         return true; 
-                        //     }
-                        // }
-                        return false;
                     },
                     getPlannedDeliveredMetrics: function(planningWindowShiftInDays, minDurationInHours,excludeAcceptedBeforeStart,usePoints){
                         var metrics = {
