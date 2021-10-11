@@ -284,6 +284,7 @@ Ext.define('RolloverCalculator', {
 
             var allRollovers = _.flatten(rollovers);
             allRollovers = allRollovers.concat(lastItemRollovers);
+            console.log('buildItemRolloverHash rollover oid count: ', allRollovers.length);
        
             _.each(allRollovers, function(snap){
 
