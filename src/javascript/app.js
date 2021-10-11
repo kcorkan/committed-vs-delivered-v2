@@ -201,6 +201,8 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                 timeboxesToUpdate.push(timeboxes[i]);
             }
         }
+        console.log('timeboxesToUpdate',timeboxesToUpdate);
+        return; 
         var promises = [],
             status = this._getNewStatus();
         var chunks = this._chunk(timeboxesToUpdate, 200);
