@@ -227,12 +227,16 @@ Ext.define('TimeboxCacheModelBuilder',{
                             return false;
                         } 
                      
+                        var dirty = cacheObj.data[objectID][TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] != rolloverCount;
                         cacheObj.data[objectID][TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] = rolloverCount;
-                        this.set(this.historicalCacheField,cacheObj);
-                        if (cacheField){
-                            this.set(cacheField,JSON.stringify(cacheObj));
-                            this.__isDirty = true;
+                        if (dirty){
+                            this.set(this.historicalCacheField,cacheObj);
+                            if (cacheField){
+                                this.set(cacheField,JSON.stringify(cacheObj));
+                                this.__isDirty = true;
+                            }
                         }
+                        
                         return true;
                     },
                     getCacheObject: function(){
