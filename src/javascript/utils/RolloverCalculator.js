@@ -383,12 +383,7 @@ Ext.define('RolloverCalculator', {
                                 var added = iterationMap[iid].addRollover(oid,itemRolloverHash[oid][iid],cacheField);
                                 if (!added){ itemRolloverHash[oid][iid] = 0; } //This is because we don't want to count things that were never in the iteration
                             }
-                        } else {
-                            console.log('buildItemRolloverHash resetting ', oid);
-                            itemRolloverHash[oid][iid] = 0;  //reset...  
-                        }
-                    
-                        
+                        } 
                     }
                 });
 
