@@ -47,8 +47,8 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             minDurationInHours: 24,
             showCacheManagement: false,
             showRolloverChart: true,
-            forceReload: false,
-            persistCache: true 
+            forceReload: true,
+            persistCache: false 
         }
     },
 
