@@ -35,6 +35,7 @@ Ext.define('RolloverCalculator', {
                 for (var j=0; j<timeboxGroups[i].length; j++){
                     var timebox = timeboxGroups[i][j];
                     var rollovers = timebox.getRolloverObjectCountHash(useFormattedID);
+                    console.log('rollovers',rollovers);
                     timeboxDataHash[currName].rolloverOids = _.reduce(rollovers, function(hsh,v,k){
                         timeboxDataHash[currName].rolloverCount[v]++;
                         if (v>0){
@@ -173,7 +174,7 @@ Ext.define('RolloverCalculator', {
                 chartData: chartData 
             }
         },
-        fetchRolledOverStories: function(timeboxGroups, status,dataContext){
+        fetchRolledOverStories: function(timeboxGroups, status,dataContext,cacheField){
             var deferred = Ext.create('Deft.Deferred');
             var promises = []; 
             
@@ -181,15 +182,15 @@ Ext.define('RolloverCalculator', {
 
                 var prevStartDate = null,
                     currentEndDate = null;
-                var previousTimeboxes = _.map(timeboxGroups[i+1], function(tb){
-                    if (!prevStartDate){ prevStartDate = tb.getStartDate().toISOString(); }
-                    return tb.get('ObjectID');
-                });
-                var currentTimeboxes = _.map(timeboxGroups[i], function(tb){
-                    if (!prevStartDate){ prevStartDate = tb.getStartDate().toISOString(); }
-                    if (!currentEndDate ){ currentEndDate = tb.getEndDate().toISOString(); }
-                    return tb.get('ObjectID');
-                });
+                // var previousTimeboxes = _.map(timeboxGroups[i+1], function(tb){
+                //     if (!prevStartDate){ prevStartDate = tb.getStartDate().toISOString(); }
+                //     return tb.get('ObjectID');
+                // });
+                // var currentTimeboxes = _.map(timeboxGroups[i], function(tb){
+                //     if (!prevStartDate){ prevStartDate = tb.getStartDate().toISOString(); }
+                //     if (!currentEndDate ){ currentEndDate = tb.getEndDate().toISOString(); }
+                //     return tb.get('ObjectID');
+                // });
 
                 var currentTimeboxes = _.reduce(timeboxGroups[i], function(arr, tb){
                     if (!prevStartDate){ prevStartDate = tb.getStartDate().toISOString(); }
@@ -250,13 +251,14 @@ Ext.define('RolloverCalculator', {
                                 lastIterationRolloverResults = _.flatten(lastIterationRolloverResults);
                                 //results.push(lastIterationRolloverResults);
                                 //RolloverCalculator.processSnaps(results, lastIterationRolloverResults, timeboxGroups);
-                                var rolloverHash = RolloverCalculator.buildItemRolloverHash(results, lastIterationRolloverResults,timeboxGroups);
+                                var rolloverHash = RolloverCalculator.buildItemRolloverHash(results, lastIterationRolloverResults,timeboxGroups,cacheField);
                                 status.done();
                                 deferred.resolve(timeboxGroups);
                             }
                             //failure:
                         });
                     } else {
+                        RolloverCalculator.buildItemRolloverHash(results, [],timeboxGroups,cacheField);
                         status.done();
                         deferred.resolve(timeboxGroups);
                     }
@@ -269,10 +271,10 @@ Ext.define('RolloverCalculator', {
             return deferred.promise; 
         },
 
-        buildItemRolloverHash: function(rollovers, lastItemRollovers, timeboxGroups){
+        buildItemRolloverHash: function(rollovers, lastItemRollovers, timeboxGroups,cacheField){
             var itemDataHash = {},
                 startDates = [];
-            
+            console.log('buildItemRolloverHash',rollovers,lastItemRollovers)
             var iterationMap = _.reduce(timeboxGroups, function(map,timeboxGroup){
                 if (!_.contains(startDates,timeboxGroup[0].getStartDateMs())){
                     startDates.push(timeboxGroup[0].getStartDateMs());
@@ -366,7 +368,7 @@ Ext.define('RolloverCalculator', {
                         var rollover = itemRolloverHash[oid][pid] || 0;
                         itemRolloverHash[oid][iid] = rollover + 1; 
                         if (iterationMap[iid] && iterationMap[iid].addRollover){
-                            iterationMap[iid].addRollover(oid,itemRolloverHash[oid][iid]);
+                            iterationMap[iid].addRollover(oid,itemRolloverHash[oid][iid],cacheField);
                         }
                     }
                 });

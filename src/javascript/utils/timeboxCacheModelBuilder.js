@@ -105,14 +105,17 @@ Ext.define('TimeboxCacheModelBuilder',{
                         return Date.parse(this.get(this.timeboxEndDateField));
                     },
                     isRolloverValid: function(){
+                        console.log('isRolloverValid')
                         var cacheObj = this.getCacheObject();
                         var rollovers = false;  
                         _.each(cacheObj.data, function(v,k){
+                            console.log('isRolloverValid',v[TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX]);
                             if (v[TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] >= 0){
-                                rollovers= true;  
-                                return false;  
+                                rollovers= true; //If at least 1 object has rollovers, then we know this is valid.  
+                                return false;   
                             }
                         });
+                        console.log('isRolloverValid',rollovers)
                         return rollovers; 
                     },
                     buildCacheFromSnaps: function(snapArraysByOid,deliveredDateField,pointsField,cacheField){
@@ -208,7 +211,9 @@ Ext.define('TimeboxCacheModelBuilder',{
                     getRolloverObjectCountHash: function(useFormattedID){
                         var cacheObj = this.getCacheObject();
                         var hash = {};
+                        console.log('getRolloverObjectCountHash', cacheObj);
                         _.each(cacheObj.data, function(v,k){
+                            console.log('getRolloverObjectCountHash',k,v,v[TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX]);
                             var oid = k; 
                             if (useFormattedID){
                                 oid = v[TimeboxCacheModelBuilder.FID_IDX];
@@ -234,10 +239,11 @@ Ext.define('TimeboxCacheModelBuilder',{
                     //     console.log('rolloverCount',idx, rolloverCount);
                     //     return rolloverCount;             
                     // },
-                    addRollover: function(objectID,rolloverCount){
+                    addRollover: function(objectID,rolloverCount,cacheField){
                         var cacheObj = this.getCacheObject();
                         if (!cacheObj.data){
-                            console.log('no cache object', this.get('Name'), this.get('ObjectID'));
+
+                            console.log('no cache object', this.get('Name'), this.get('ObjectID'), this.getCacheObject());
                             return;
                         }
                         if (!cacheObj.data[objectID]){
@@ -247,9 +253,20 @@ Ext.define('TimeboxCacheModelBuilder',{
                      
                         cacheObj.data[objectID][TimeboxCacheModelBuilder.ROLLOVER_COUNT_IDX] = rolloverCount;
                         this.set(this.historicalCacheField,cacheObj);
+                        if (cacheField){
+                            this.set(cacheField,JSON.stringify(cacheObj));
+                            this.__isDirty = true;
+                        }
                     },
                     getCacheObject: function(){
-                        return cache = this.get(this.historicalCacheField) || {};
+                        var cache = this.get(this.historicalCacheField) || {};
+                        console.log('getcacheObject')
+                        if (_.isEmpty(cache) && this.persistedCacheField){
+                            console.log('getcacheObject: loading from persisted f ield',this.persistedCacheField);
+                            this.loadCache(this.persistedCacheField);
+                            cache = this.get(this.historicalCacheField) || {};
+                        }
+                        return cache;
                     },
                     getPersistedCacheObject: function(cacheField){
                         try {
@@ -266,7 +283,9 @@ Ext.define('TimeboxCacheModelBuilder',{
                                 if (cache.version == TimeboxCacheModelBuilder.CACHE_VERSION &&
                                     cache.startDate == this.getStartDateMs() && cache.endDate == this.getEndDateMs()){
                                     this.set(this.historicalCacheField, cache);
+                                    console.log('cacheLoadedd',this.historicalCacheField,cache)
                                     return true; 
+
                                 } 
                             }
                         }

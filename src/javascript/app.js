@@ -865,7 +865,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                     if (this.getShowRollover()){
                         var status = this._getNewStatus();
                         status.progressStart("Loading rollover data");
-                        RolloverCalculator.fetchRolledOverStories(timeboxGroups, status, this.getContext().getDataContext()).then({
+                        RolloverCalculator.fetchRolledOverStories(timeboxGroups, status, this.getContext().getDataContext(),this.getHistorcalCacheField()).then({
                             success: function(timeboxGroups){
                                 status.done();
                                 this._showRolloverChart(timeboxGroups);
