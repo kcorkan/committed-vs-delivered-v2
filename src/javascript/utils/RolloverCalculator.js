@@ -7,7 +7,7 @@ Ext.define('RolloverCalculator', {
     
         _initArray: function(len, initValue){
             var arr = [];
-            for (var i=0;i<len;i++){ arr[i] = initValue }
+            for (var i=0;i<=len;i++){ arr[i] = initValue }
             return arr; 
         },
         getTimeboxNamesAsc: function(timeboxGroups){
