@@ -369,13 +369,13 @@ Ext.define('RolloverCalculator', {
                         validFrom = Date.parse(d._ValidFrom);  
                     ///if previousIteration index + 1 = iteration index then we want to do this, 
                     //otherwise dont.  
-                    var iterationStartDate = iterationMap[pid].startDateMs || iterationMap[pid].getStartDateMs(),
-                        iterationEndDate = iterationMap[pid].endDateMs || iterationMap[pid].getEndDateMs();
+                    var iterationStartDate = iterationMap[iid].startDateMs || iterationMap[iid].getStartDateMs(),
+                        prevIterationStartDate = iterationMap[pid].endDateMs || iterationMap[pid].getEndDateMs();
 
                      if (iterationMap[pid].index + 1 === iterationMap[iid].index){
                          console.log('buildItemRolloverHash oid ', oid, ' validTo ', validTo, ' validFro ', validFrom);
                          console.log('buildItemRolloverHash oid ', oid, ' startDa ', iterationStartDate, ' endDate ', iterationEndDate);
-                        if (validTo > iterationStartDate && validFrom < iterationEndDate){
+                        if (validFrom > prevIterationStartDate && validTo > iterationStartDate){
                             var rollover = itemRolloverHash[oid][pid] || 0;
                             console.log('buildItemRolloverHash counting as rollover',oid, rollover);
                             itemRolloverHash[oid][iid] = rollover + 1; 
