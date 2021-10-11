@@ -860,7 +860,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                     } else {
                         this._showChart(timeboxGroups);
                     }
-                    if (this.getSaveCacheToTimebox() && !this.getShowRollover()){
+                    if (this.getSaveCacheToTimebox()){
                         this.persistCache(this.getHistorcalCacheField());
                     }
                 }
