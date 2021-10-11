@@ -389,7 +389,7 @@ Ext.define('RolloverCalculator', {
                    Iteration: {"$ne": null},
                    "_PreviousValues.Iteration": {"$ne": null}
             };
-            console.log('oids',oids.length);
+            console.log('Last Iteration Rollover oids',oids.length);
          
             var store = Ext.create('Rally.data.lookback.SnapshotStore', {
                 autoLoad: false,

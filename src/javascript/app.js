@@ -684,7 +684,6 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         return this.getSetting('showBySumOfEstimate') == true || this.getSetting('showBySumOfEstimate') == "true";
     },
     getTimeboxes: function() {
-        console.log('getTimeboxes',new Date());
         // Get the N most recent timeboxes in the current project
         // Sort by name
         // Get timeboxes by name from all child projects
@@ -715,7 +714,6 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     },
     buildHistoricalCache: function(timeboxes) {
         // Group by timebox name
-        console.log('buildHistoricalCache', new Date())
         if (timeboxes.length === 0){ return []; }
 
         var dataContext = this.getContext().getDataContext();
@@ -833,7 +831,6 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     },
     viewChange: function() {
         this.setLoading(true);
-        console.log('viewChange',new Date());
         // Add the other filter, config and export controls
         this.addControls().then({
             scope: this,
