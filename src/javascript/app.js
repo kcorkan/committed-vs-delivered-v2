@@ -203,7 +203,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             }
         }
         console.log('persistCache timeboxesToUpdate',timeboxesToUpdate);
-        return; 
+        
         var promises = [],
             status = this._getNewStatus();
         var chunks = this._chunk(timeboxesToUpdate, 200);
