@@ -92,6 +92,7 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                     oids.push(tbOid);
                 } else {
                     var persistedCache = timebox.loadCache(persistedCacheField);
+                    console.log('persistedCache',persistedCache);
                     if (_.isEmpty(persistedCache) || !persistedCache){
                         oids.push(tbOid);
                     }

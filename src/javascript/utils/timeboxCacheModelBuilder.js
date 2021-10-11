@@ -223,7 +223,7 @@ Ext.define('TimeboxCacheModelBuilder',{
                             return;
                         }
                         if (!cacheObj.data[objectID]){
-                            console.log('objectID not found in iteration',this.get('Name'), this.get('StartDate'),this.get('EndDate'),objectID);
+                            //console.log('objectID not found in iteration',this.get('Name'), this.get('StartDate'),this.get('EndDate'),objectID);
                             return;
                         } 
                      
