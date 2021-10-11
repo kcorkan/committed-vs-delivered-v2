@@ -229,41 +229,46 @@ Ext.define('RolloverCalculator', {
                     promises.push(RolloverCalculator.fetchSnapshots(filters,status,dataContext));
                 }
             }
-            var lastIterationStartDate = timeboxGroups[timeboxGroups.length-1][0].getStartDate().toISOString();
-            Deft.Promise.all(promises).then({
-                success: function(results){
-                    var lastIterationRollovers = results[results.length - 1];
-                    var promises = []; 
-                    var maxChunk = 10000;
-                    for (i=0; i<lastIterationRollovers.length; i=i+maxChunk){
-                        var rollovers = lastIterationRollovers.slice(i,i+maxChunk);
-                        promises.push(RolloverCalculator.fetchLastIterationRollovers(status,rollovers,lastIterationStartDate,dataContext))
-                    }
-                    
-                    if (promises.length > 0){
-                        //RolloverCalculator.fetchLastIterationRollovers(status,lastIterationRollovers,lastIterationStartDate,dataContext).then({
-                        Deft.Promise.all(promises).then({
-                            success: function(lastIterationRolloverResults){
-                                lastIterationRolloverResults = _.flatten(lastIterationRolloverResults);
-                                //results.push(lastIterationRolloverResults);
-                                //RolloverCalculator.processSnaps(results, lastIterationRolloverResults, timeboxGroups);
-                                var rolloverHash = RolloverCalculator.buildItemRolloverHash(results, lastIterationRolloverResults,timeboxGroups,cacheField);
-                                status.done();
-                                deferred.resolve(timeboxGroups);
-                            }
-                            //failure:
-                        });
-                    } else {
-                        RolloverCalculator.buildItemRolloverHash(results, [],timeboxGroups,cacheField);
-                        status.done();
-                        deferred.resolve(timeboxGroups);
-                    }
-                    
-                    
-                },
-                failure: function(msg){},
-                scope: this 
-            });  
+
+            if (promises.length > 0){
+                var lastIterationStartDate = timeboxGroups[timeboxGroups.length-1][0].getStartDate().toISOString();
+                Deft.Promise.all(promises).then({
+                    success: function(results){
+                        var lastIterationRollovers = results[results.length - 1];
+                        var promises = []; 
+                        var maxChunk = 10000;
+                        for (i=0; i<lastIterationRollovers.length; i=i+maxChunk){
+                            var rollovers = lastIterationRollovers.slice(i,i+maxChunk);
+                            promises.push(RolloverCalculator.fetchLastIterationRollovers(status,rollovers,lastIterationStartDate,dataContext))
+                        }
+                        
+                        if (promises.length > 0){
+                            //RolloverCalculator.fetchLastIterationRollovers(status,lastIterationRollovers,lastIterationStartDate,dataContext).then({
+                            Deft.Promise.all(promises).then({
+                                success: function(lastIterationRolloverResults){
+                                    lastIterationRolloverResults = _.flatten(lastIterationRolloverResults);
+                                    //results.push(lastIterationRolloverResults);
+                                    //RolloverCalculator.processSnaps(results, lastIterationRolloverResults, timeboxGroups);
+                                    var rolloverHash = RolloverCalculator.buildItemRolloverHash(results, lastIterationRolloverResults,timeboxGroups,cacheField);
+                                    status.done();
+                                    deferred.resolve(timeboxGroups);
+                                }
+                                //failure:
+                            });
+                        } else {
+                            RolloverCalculator.buildItemRolloverHash(results, [],timeboxGroups,cacheField);
+                            status.done();
+                            deferred.resolve(timeboxGroups);
+                        }
+                        
+                        
+                    },
+                    failure: function(msg){},
+                    scope: this 
+                });  
+            } else {
+                deferred.resolve(timeboxGroups);
+            }
             return deferred.promise; 
         },
 
