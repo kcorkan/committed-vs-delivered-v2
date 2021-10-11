@@ -373,8 +373,8 @@ Ext.define('RolloverCalculator', {
                         prevIterationStartDate = iterationMap[pid].endDateMs || iterationMap[pid].getEndDateMs();
 
                      if (iterationMap[pid].index + 1 === iterationMap[iid].index){
-                         console.log('buildItemRolloverHash oid ', oid, ' validTo ', validTo, ' validFro ', validFrom);
-                         console.log('buildItemRolloverHash oid ', oid, ' startDa ', iterationStartDate, ' endDate ', iterationEndDate);
+                         console.log('buildItemRolloverHash oid ', oid, ' validFro ', validFrom, ' validTo ', validTo);
+                         console.log('buildItemRolloverHash oid ', oid, ' prev startDa ', prevIterationStartDate, ' startDate ', iterationStartDate);
                         if (validFrom > prevIterationStartDate && validTo > iterationStartDate){
                             var rollover = itemRolloverHash[oid][pid] || 0;
                             console.log('buildItemRolloverHash counting as rollover',oid, rollover);
