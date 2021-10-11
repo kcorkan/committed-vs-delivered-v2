@@ -173,7 +173,7 @@ Ext.define('RolloverCalculator', {
                 chartData: chartData 
             }
         },
-        fetchRolledOverStories: function(timeboxGroups, status,dataContext,cacheField){
+        fetchRolledOverStories: function(timeboxGroups, status,dataContext,cacheField, forceReload){
             var deferred = Ext.create('Deft.Deferred');
             var promises = []; 
             
@@ -191,7 +191,7 @@ Ext.define('RolloverCalculator', {
                 var currentTimeboxes = _.reduce(timeboxGroups[i], function(arr, tb){
                     if (!prevStartDate){ prevStartDate = tb.getStartDate().toISOString(); }
                     if (!currentEndDate ){ currentEndDate = tb.getEndDate().toISOString(); }
-                    if (!tb.isRolloverValid()){
+                    if (!tb.isRolloverValid() || forceReload){
                         arr.push(tb.get('ObjectID'));
                     }
                     return arr;

@@ -46,7 +46,9 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             showBySumOfEstimate: true,
             minDurationInHours: 24,
             showCacheManagement: false,
-            showRolloverChart: true
+            showRolloverChart: true,
+            forceReload: false,
+            persistCache: true 
         }
     },
 
@@ -193,6 +195,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     persistCache: function(historicalCacheField){
         var key = 'Saving timebox cache batch';
         console.log('persistCache',historicalCacheField);
+
         var timeboxes = this.timeboxes; 
         var status = this._getNewStatus();
        
@@ -203,6 +206,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             }
         }
         console.log('persistCache timeboxesToUpdate',timeboxesToUpdate);
+        if (!this.getPersistCacheChanges()){return; }
         
         var promises = [],
             status = this._getNewStatus();
@@ -853,7 +857,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                     if (this.getShowRollover()){
                         var status = this._getNewStatus();
                         status.progressStart("Loading rollover data");
-                        RolloverCalculator.fetchRolledOverStories(timeboxGroups, status, this.getContext().getDataContext(),this.getHistorcalCacheField()).then({
+                        RolloverCalculator.fetchRolledOverStories(timeboxGroups, status, this.getContext().getDataContext(),this.getHistorcalCacheField(),this.getForceReload()).then({
                             success: function(timeboxGroups){
                                 status.done();
                                 this._showRolloverChart(timeboxGroups);
@@ -873,6 +877,12 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                 }
             }
         });
+    },
+    getPersistCacheChanges: function(){
+        return this.getSetting('persistCache') === true || this.getSetting('persistCache') === "true" || false;
+    },
+    getForceReload: function(){
+        return this.getSetting('forceReload') === true || this.getSetting('forceReload') === "true" || false;
     },
     getShowRollover: function(){
         return this.getSetting('showRolloverChart') === true || this.getSetting('showRolloverChart') === "true";
@@ -1051,7 +1061,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         },{
             xtype: 'rallycheckboxfield',
             name: 'saveCacheToTimebox',
-            fieldLabel: 'Save Cache',
+            fieldLabel: 'Use Cache',
             labelWidth: labelWidth,
             bubbleEvents: ['change'],
             labelAlign: labelAlign,
@@ -1081,6 +1091,18 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                 },
                 labelAlign: labelAlign
     
+        },{
+            xtype: 'rallycheckboxfield',
+            name: 'forceReload',
+            fieldLabel: 'Force Reload',
+            labelWidth: labelWidth,
+            labelAlign: labelAlign
+        },{
+            xtype: 'rallycheckboxfield',
+            name: 'persistCache',
+            fieldLabel: 'Persist Updated Cache',
+            labelWidth: labelWidth,
+            labelAlign: labelAlign
         }];
     }
 });
