@@ -1101,6 +1101,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         },{
             xtype: 'rallycheckboxfield',
             name: 'forceReload',
+            itemId: 'forceReload',
             fieldLabel: 'Force Reload',
             labelWidth: labelWidth + 50,
             disabled: !showCache, 
@@ -1108,6 +1109,7 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         },{
             xtype: 'rallycheckboxfield',
             name: 'persistCache',
+            itemId: 'persistCache',
             fieldLabel: 'Persist Updated Cache',
             labelWidth: labelWidth + 50,
             disabled: !showCache, 
