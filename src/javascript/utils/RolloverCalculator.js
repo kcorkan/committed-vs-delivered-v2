@@ -38,6 +38,7 @@ Ext.define('RolloverCalculator', {
                     console.log('rollovers',rollovers);
                     timeboxDataHash[currName].rolloverOids = _.reduce(rollovers, function(hsh,v,k){
                         console.log('reducing data hash',hsh,k,v);
+                        v = Math.min(maxRollover,v);
                         timeboxDataHash[currName].rolloverCount[v]++;
                         if (v>0){
                             hsh[k]=v;
