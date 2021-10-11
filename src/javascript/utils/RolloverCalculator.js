@@ -35,8 +35,9 @@ Ext.define('RolloverCalculator', {
                 for (var j=0; j<timeboxGroups[i].length; j++){
                     var timebox = timeboxGroups[i][j];
                     var rollovers = timebox.getRolloverObjectCountHash(useFormattedID);
-
+                    console.log('rollovers',rollovers);
                     timeboxDataHash[currName].rolloverOids = _.reduce(rollovers, function(hsh,v,k){
+                        console.log('reducing data hash',hsh,k,v);
                         timeboxDataHash[currName].rolloverCount[v]++;
                         if (v>0){
                             hsh[k]=v;
