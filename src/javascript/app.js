@@ -195,20 +195,6 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         var timeboxes = this.timeboxes; 
         var status = this._getNewStatus();
        
-        // var promises = [];
-        // for (var i=0; i<timeboxes.length; i++){
-        //     if (timeboxes[i].persistCache(historicalCacheField)){
-        //         promises.push(this._saveRecord(timeboxes[i],status,key));
-        //     }
-        // }
-        // if (promises.length > 0){
-        //     Deft.Promise.all(promises).then({
-        //         success: function(){
-        //             this.setLoading(false);   
-        //         },
-        //         scope: this 
-        //     });
-        // }
         var timeboxesToUpdate = [];
         for (var i=0; i<timeboxes.length; i++){
             if (timeboxes[i].persistCache(historicalCacheField)){
@@ -872,11 +858,10 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                             },
                             scope: this 
                         });
-                        //this._showRolloverChart(timeboxGroups);
                     } else {
                         this._showChart(timeboxGroups);
                     }
-                    if (this.getSaveCacheToTimebox()){
+                    if (this.getSaveCacheToTimebox() && !this.getShowRollover()){
                         this.persistCache(this.getHistorcalCacheField());
                     }
                 }

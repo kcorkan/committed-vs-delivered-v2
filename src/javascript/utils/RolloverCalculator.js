@@ -35,7 +35,7 @@ Ext.define('RolloverCalculator', {
                 for (var j=0; j<timeboxGroups[i].length; j++){
                     var timebox = timeboxGroups[i][j];
                     var rollovers = timebox.getRolloverObjectCountHash(useFormattedID);
-                    console.log('rollovers',rollovers);
+
                     timeboxDataHash[currName].rolloverOids = _.reduce(rollovers, function(hsh,v,k){
                         timeboxDataHash[currName].rolloverCount[v]++;
                         if (v>0){
@@ -101,7 +101,6 @@ Ext.define('RolloverCalculator', {
                for (var j=0;j<chartData.series.length; j++){ 
                     for (var i=0; i<timeboxNames.length; i++){
                         var tbName = timeboxNames[i];
-                        console.log(tbName);
                         chartData.series[j].data[i] = timeboxDataHash[tbName] && timeboxDataHash[tbName].rolloverCount[j] || 0;
                         
                     }
@@ -182,24 +181,21 @@ Ext.define('RolloverCalculator', {
 
                 var prevStartDate = null,
                     currentEndDate = null;
-                // var previousTimeboxes = _.map(timeboxGroups[i+1], function(tb){
-                //     if (!prevStartDate){ prevStartDate = tb.getStartDate().toISOString(); }
-                //     return tb.get('ObjectID');
-                // });
-                // var currentTimeboxes = _.map(timeboxGroups[i], function(tb){
-                //     if (!prevStartDate){ prevStartDate = tb.getStartDate().toISOString(); }
-                //     if (!currentEndDate ){ currentEndDate = tb.getEndDate().toISOString(); }
-                //     return tb.get('ObjectID');
-                // });
 
-                var currentTimeboxes = _.reduce(timeboxGroups[i], function(arr, tb){
+                var currentTimeboxes = _.map(timeboxGroups[i], function(tb){
                     if (!prevStartDate){ prevStartDate = tb.getStartDate().toISOString(); }
                     if (!currentEndDate ){ currentEndDate = tb.getEndDate().toISOString(); }
-                    if (!tb.isRolloverValid()){
-                        arr.push(tb.get('ObjectID'));
-                    }
-                    return arr;
-                },[]);
+                    return tb.get('ObjectID');
+                });
+
+                // var currentTimeboxes = _.reduce(timeboxGroups[i], function(arr, tb){
+                //     if (!prevStartDate){ prevStartDate = tb.getStartDate().toISOString(); }
+                //     if (!currentEndDate ){ currentEndDate = tb.getEndDate().toISOString(); }
+                //     if (!tb.isRolloverValid()){
+                //         arr.push(tb.get('ObjectID'));
+                //     }
+                //     return arr;
+                // },[]);
         
                 var prevFilter = {
                     property: '_PreviousValues.Iteration',
@@ -274,7 +270,6 @@ Ext.define('RolloverCalculator', {
         buildItemRolloverHash: function(rollovers, lastItemRollovers, timeboxGroups,cacheField){
             var itemDataHash = {},
                 startDates = [];
-            console.log('buildItemRolloverHash',rollovers,lastItemRollovers)
             var iterationMap = _.reduce(timeboxGroups, function(map,timeboxGroup){
                 if (!_.contains(startDates,timeboxGroup[0].getStartDateMs())){
                     startDates.push(timeboxGroup[0].getStartDateMs());
@@ -374,15 +369,7 @@ Ext.define('RolloverCalculator', {
                 });
 
             });   
-            console.log('itemRolloverHash',itemRolloverHash);
-
-            // _.each(itemRolloverHash, function(iterationHash,itemId){
-            //     _.each(iterationHash, function(iteration,iterationOid){
-            //         if (iterationMap[iterationOid] && iterationMap[iterationOid].addRollover){
-            //             iterationMap[iterationOid].addRollover(itemId,iteration);
-            //         }
-            //     });
-            // });
+           // console.log('itemRolloverHash',itemRolloverHash);
 
             return itemRolloverHash; 
             
