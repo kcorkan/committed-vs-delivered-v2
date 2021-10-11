@@ -47,8 +47,8 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             minDurationInHours: 24,
             showCacheManagement: false,
             showRolloverChart: true,
-            forceReload: true,
-            persistCache: false 
+            forceReload: false,
+            persistCache: true
         }
     },
 
@@ -1047,9 +1047,10 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     },
     hideCacheSettings: function(hide){
         this.up().down('#historicalCacheField').setDisabled(hide);
-        this.up().down('#forceReload').setDisabled(hide);
-        this.up().down('#persistCache').setDisabled(hide);
-        
+        if (this.up().down('#forceReload') && this.up().down('#persistCache')){
+            this.up().down('#forceReload').setDisabled(hide);
+            this.up().down('#persistCache').setDisabled(hide);    
+        }
         this.up().down('#showCacheManagement') && this.up().down('#showCacheManagement').setDisabled(hide);
     },
     getSettingsFields: function(){
@@ -1098,22 +1099,22 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
                 },
                 labelAlign: labelAlign
     
-        },{
-            xtype: 'rallycheckboxfield',
-            name: 'forceReload',
-            itemId: 'forceReload',
-            fieldLabel: 'Force Reload',
-            labelWidth: labelWidth + 50,
-            disabled: !showCache, 
-            labelAlign: labelAlign
-        },{
-            xtype: 'rallycheckboxfield',
-            name: 'persistCache',
-            itemId: 'persistCache',
-            fieldLabel: 'Persist Updated Cache',
-            labelWidth: labelWidth + 50,
-            disabled: !showCache, 
-            labelAlign: labelAlign
+        // },{
+        //     xtype: 'rallycheckboxfield',
+        //     name: 'forceReload',
+        //     itemId: 'forceReload',
+        //     fieldLabel: 'Force Reload',
+        //     labelWidth: labelWidth + 50,
+        //     disabled: !showCache, 
+        //     labelAlign: labelAlign
+        // },{
+        //     xtype: 'rallycheckboxfield',
+        //     name: 'persistCache',
+        //     itemId: 'persistCache',
+        //     fieldLabel: 'Persist Updated Cache',
+        //     labelWidth: labelWidth + 50,
+        //     disabled: !showCache, 
+        //     labelAlign: labelAlign
         }];
     }
 });
