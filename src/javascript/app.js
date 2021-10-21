@@ -553,15 +553,67 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
     },
     fetchDetailData: function(detailOids,fields, dataArray, oidField){
         var deferred = Ext.create('Deft.Deferred');
-        if (!oidField){ oidField = "ObjectID"}
 
-        var filters = {
-            property: oidField,
-            operator: 'in',
-            value: detailOids.join(",")
+        if (!oidField){ oidField = "ObjectID"}
+  
+        var chunks = this._chunk(detailOids, 1000);
+        var promises = [];
+        for (var i=0; i<chunks.length; i++){
+            var filters = {
+                property: oidField,
+                operator: 'in',
+                value: chunks[i].join(",")
+            }
+            promises.push(this.fetchDetailChunk(filters,fields));
         }
 
-        this.setLoading("Loading detail data for export...");
+        if (promises.length > 0){
+            this.setLoading("Loading detail data for export...");
+            Deft.Promise.all(promises).then({
+                success: function(results){
+                    var records = _.flatten(results);
+                    this.addDetailToDataArray(dataArray,fields,records,oidField);
+                    this.setLoading(false);
+                    deferred.resolve(dataArray);
+                },
+                failure: function(msg){
+                    this.setLoading(false);
+                    deferred.reject(msg);
+                },
+                scope: this 
+            });
+        } else {
+            deferred.resolve(dataArray);
+        }
+
+        return deferred.promise;
+        
+        // Ext.create('Rally.data.wsapi.Store',{
+        //     model: 'HierarchicalRequirement',
+        //     filters: filters,
+        //     fetch: fields,
+        //     enablePostGet: true, 
+        //     pageSize: 2000,
+        //     limit: Infinity 
+        // }).load({
+        //     callback: function(records,operation,success){
+
+        //         if (operation.wasSuccessful()){
+        //             this.addDetailToDataArray(dataArray,fields,records,oidField);
+        //             this.setLoading(false);
+        //             deferred.resolve(dataArray);
+        //         } else {
+        //             this.setLoading(false);
+        //             deferred.reject(operation && operation.error && operation.error.errors.join(", "));
+        //         }
+        //     },
+        //     scope: this 
+        // });
+
+        // return deferred.promise; 
+    },
+    fetchDetailChunk: function(filters, fields){
+        var deferred = Ext.create('Deft.Deferred');
         Ext.create('Rally.data.wsapi.Store',{
             model: 'HierarchicalRequirement',
             filters: filters,
@@ -571,20 +623,17 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             limit: Infinity 
         }).load({
             callback: function(records,operation,success){
-
                 if (operation.wasSuccessful()){
-                    this.addDetailToDataArray(dataArray,fields,records,oidField);
-                    this.setLoading(false);
-                    deferred.resolve(dataArray);
+
+                    deferred.resolve(records);
                 } else {
-                    this.setLoading(false);
+                    
                     deferred.reject(operation && operation.error && operation.error.errors.join(", "));
                 }
             },
             scope: this 
         });
-
-        return deferred.promise; 
+        return deferred.promise;  
     },
     addDetailToDataArray: function(dataArray,fields,records,oidField){
         if (!oidField){ oidField = "ObjectID"; }
