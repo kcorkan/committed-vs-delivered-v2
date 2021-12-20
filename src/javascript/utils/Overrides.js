@@ -31,3 +31,52 @@ Ext.override(Rally.app.App, {
         }));
     }
 })
+
+Ext.override(CArABU.technicalservices.FileUtilities,{
+    convertDataArrayToCSVText: function(data_array, requestedFieldHash) {
+
+        var text = '';
+        Ext.each(Object.keys(requestedFieldHash), function(key) {
+            text += requestedFieldHash[key] + ',';
+        });
+        text = text.replace(/,$/, '\n');
+
+        Ext.each(data_array, function(d) {
+            Ext.each(Object.keys(requestedFieldHash), function(key) {
+                if (d[key]) {
+                    if (typeof d[key] === 'object') {
+                        if (key === 'Owner'){
+                            console.log('key',d[key]);
+                        }
+                        if (d[key].FormattedID) {
+                            text += Ext.String.format("\"{0}\",", d[key].FormattedID);
+                        }
+                        else if (d[key].Name) {
+                            text += Ext.String.format("\"{0}\",", d[key].Name);
+                        }
+                        else if (d[key].EmailAddress){  //Adding for user fields 
+                            text += Ext.String.format("\"{0}\",", d[key].EmailAddress);
+                        }
+                        else if (!isNaN(Date.parse(d[key]))) {
+                            text += Ext.String.format("\"{0}\",", Rally.util.DateTime.formatWithDefaultDateTime(d[key]));
+                        }
+                        else if (d[key]._refObjectName){  //Adding for user fields 
+                            text += Ext.String.format("\"{0}\",", d[key]._refObjectName);
+                        }
+                        else {
+                            text += Ext.String.format("\"{0}\",", d[key].toString());
+                        }
+                    }
+                    else {
+                        text += Ext.String.format("\"{0}\",", d[key]);
+                    }
+                }
+                else {
+                    text += ',';
+                }
+            }, this);
+            text = text.replace(/,$/, '\n');
+        }, this);
+        return text;
+    },
+});

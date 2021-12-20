@@ -509,11 +509,13 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
             value: detailOids.join(",")
         }
 
+        var fetchFields = fields.slice();
+        fetchFields.push('EmailAddress');
         this.setLoading("Loading detail data for export...");
         Ext.create('Rally.data.wsapi.Store',{
             model: 'HierarchicalRequirement',
             filters: filters,
-            fetch: fields,
+            fetch: fetchFields,
             enablePostGet: true, 
             pageSize: 2000,
             limit: Infinity 
@@ -543,7 +545,8 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         for (var i=0; i< dataArray.length; i++){
             var detailRec = hash[dataArray[i].ObjectID] || {},
                 emptyText = _.isEmpty(detailRec) ? "[deleted]" : "";
-            for (var j=0; j<fields.length; j++){         
+            for (var j=0; j<fields.length; j++){
+                if (fields[j])         
                 dataArray[i][fields[j]] = detailRec[fields[j]] || dataArray[i][fields[j]] || emptyText;       
             }
         }
