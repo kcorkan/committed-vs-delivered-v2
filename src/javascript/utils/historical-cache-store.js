@@ -122,11 +122,19 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                 }
             ]);
           
-            var filters = [{
-                    property: '_TypeHierarchy',
-                    operator: 'in',
-                    value: this.modelNames
-                },
+            var typeFilter = Ext.create('Rally.data.lookback.QueryFilter',{
+                property: '_TypeHierarchy',
+                operator: '=',
+                value: 'HierarchicalRequirement'
+            });
+            typeFilter = typeFilter.or({
+                property: '_TypeHierarchy',
+                operator: '=',
+                value: 'Defect'
+            });
+
+            var filters = [
+                typeFilter,
                 {
                     property: this.timeboxType,
                     operator: 'in',
