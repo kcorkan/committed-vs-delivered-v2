@@ -209,11 +209,22 @@ Ext.define('RolloverCalculator', {
                 //         value: previousTimeboxes
                 //     }
                 // }
+
+                var typeFilter = Ext.create('Rally.data.lookback.QueryFilter',{
+                    property: '_TypeHierarchy',
+                    operator: '=',
+                    value: 'HierarchicalRequirement'
+                });
+                typeFilter = typeFilter.or({
+                     property: '_TypeHierarchy',
+                     operator: '=',
+                     value: 'Defect'
+                });
+
+
                 if (currentTimeboxes.length > 0){
-                    var filters = [{
-                        property: '_TypeHierarchy',
-                        value: 'HierarchicalRequirement'
-                    },
+                    var filters = [
+                    typeFilter,
                     {
                         property: 'Iteration',
                         operator: 'in',

@@ -551,21 +551,31 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         var fields = this.getFieldsFromButton();
         this.exportCacheData(fields);
     },
+    
     fetchDetailData: function(detailOids,fields, dataArray, oidField){
         var deferred = Ext.create('Deft.Deferred');
-
+        console.log('fetchDetailData',detailOids,fields,dataArray)
         if (!oidField){ oidField = "ObjectID"}
   
-        var chunks = this._chunk(detailOids, 1000);
+       // var chunks = this._chunk(detailOids, 1000);
         var promises = [];
-        for (var i=0; i<chunks.length; i++){
-            var filters = {
-                property: oidField,
-                operator: 'in',
-                value: chunks[i].join(",")
-            }
-            promises.push(this.fetchDetailChunk(filters,fields));
-        }
+        var filters=  {
+                    property: oidField,
+                    operator: 'in',
+                    value: detailOids.join(",")
+                }
+
+        promises.push(this.fetchDetailChunk(filters,fields,'HierarchicalRequirement'));        
+        promises.push(this.fetchDetailChunk(filters,fields,'Defect'));   
+
+        // for (var i=0; i<chunks.length; i++){
+        //     var filters = {
+        //         property: oidField,
+        //         operator: 'in',
+        //         value: chunks[i].join(",")
+        //     }
+        //     promises.push(this.fetchDetailChunk(filters,fields,model));
+        // }
 
         if (promises.length > 0){
             this.setLoading("Loading detail data for export...");
@@ -612,10 +622,10 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
 
         // return deferred.promise; 
     },
-    fetchDetailChunk: function(filters, fields){
+    fetchDetailChunk: function(filters, fields,model){
         var deferred = Ext.create('Deft.Deferred');
         Ext.create('Rally.data.wsapi.Store',{
-            model: 'HierarchicalRequirement',
+            model: model,
             filters: filters,
             fetch: fields,
             enablePostGet: true, 
@@ -777,13 +787,14 @@ Ext.define("Rally.app.CommittedvsDeliveredv2", {
         dataContext.includePermissions = false; 
         var status = this._getNewStatus();
         this.timeboxes = timeboxes; 
+        var modelNames = ['HierarchicalRequirement','Defect'];
         return Ext.create('TimeboxHistoricalCacheFactory',{
             timeboxType: this.getSetting('timeboxType'),
             dataContext: dataContext,
             deliveredDateField: this.getDeliveredDateField(),
-            modelNames: ['HierarchicalRequirement'],
+           // modelNames: ['HierarchicalRequirement','Defect'],
             pointsField: this.getPointsField()
-        }).build(timeboxes,status,this.getHistorcalCacheField());
+        }).build(timeboxes,status,this.getHistorcalCacheField(),modelNames);
     },
     _clearMask: function(){
         this.setLoading(false);

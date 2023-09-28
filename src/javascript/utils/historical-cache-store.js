@@ -10,7 +10,8 @@ Ext.define('TimeboxHistoricalCacheFactory', {
         _.merge(this,config);
     },
 
-    build: function(timeboxes, status,persistedCacheField){
+    build: function(timeboxes, status,persistedCacheField, modelNames){
+        this.modelNames = modelNames; 
         if (this.dataContext === null || this.timeboxType === null || this.deliveredDateField === null || !this.modelNames || this.modelNames.length === 0){
             throw "Please pass a dataContext, timeboxType, deliveredDateField and modelNames configuration.";
         } else {
@@ -121,16 +122,17 @@ Ext.define('TimeboxHistoricalCacheFactory', {
                 //     value: timeboxStartIso
                 }
             ]);
-          
+            
+            
             var typeFilter = Ext.create('Rally.data.lookback.QueryFilter',{
                 property: '_TypeHierarchy',
                 operator: '=',
                 value: 'HierarchicalRequirement'
             });
             typeFilter = typeFilter.or({
-                property: '_TypeHierarchy',
-                operator: '=',
-                value: 'Defect'
+                 property: '_TypeHierarchy',
+                 operator: '=',
+                 value: 'Defect'
             });
 
             var filters = [
